@@ -1,85 +1,200 @@
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth.store'
+import { ENDPOINTS } from '../api/endpoints'
+import client from '../api/client'
+import UpgradeModal from './UpgradeModal'
 
 const NAV_ITEMS = [
-  { to: '/',          label: 'Inicio' },
-  { to: '/create',    label: 'Crear canción' },
-  { to: '/library',   label: 'Tu biblioteca' },
-  { to: '/community', label: 'Comunidad' },
+  {
+    to: '/',
+    label: 'Inicio',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/create',
+    label: 'Crear canción',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/library',
+    label: 'Tu biblioteca',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/community',
+    label: 'Comunidad',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/profile',
+    label: 'Perfil',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/payments',
+    label: 'Historial de pagos',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z" />
+      </svg>
+    ),
+  },
 ]
+
+interface Suscripcion {
+  id: string
+  plan: number
+  planNombre: string
+  estado: string
+}
 
 export default function AppLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+
+  const [esPro, setEsPro]               = useState(false)
+  const [checkingPlan, setCheckingPlan] = useState(true)
+  const [showModal, setShowModal]       = useState(false)
+
+  useEffect(() => {
+    if (!user?.id) {
+      setCheckingPlan(false)
+      return
+    }
+    client.get(ENDPOINTS.suscripciones.porUsuario(user.id))
+      .then(({ data }: { data: Suscripcion[] }) => {
+        const activa = data.find(s => s.estado === 'activa')
+        if (activa?.planNombre?.toLowerCase() === 'pro') {
+          setEsPro(true)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingPlan(false))
+  }, [user?.id])
 
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
   }
 
+  const initials = user?.nombreCompleto
+    ? user.nombreCompleto.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    : '?'
+
   return (
     <div
       className="grid h-screen bg-night gap-2 p-2 box-border"
-      style={{ gridTemplateColumns: '280px 1fr', gridTemplateRows: '1fr 90px' }}
+      style={{ gridTemplateColumns: '280px 1fr', gridTemplateRows: '1fr' }}
     >
-      {/* ── Sidebar ────────────────────────────────── */}
-      <aside className="flex flex-col gap-2 overflow-hidden">
-
-        {/* Navegación */}
-        <div className="bg-surface rounded-lg p-4">
-          <p className="text-primary text-xl font-bold tracking-tight mb-5">MusicGen</p>
-          <nav className="flex flex-col gap-1">
-            {NAV_ITEMS.map(({ to, label }) => (
+      <aside className="flex flex-col overflow-hidden">
+        <div className="bg-surface rounded-lg p-1 flex flex-col h-full">
+          <img src="/logo.png" alt="MusicGen" className="w-[32px] h-[32px] object-contain mt-2 mb-4 ml-1" />
+          <nav className="flex flex-col gap-1 flex-1">
+            {NAV_ITEMS.map(({ to, label, icon }) => (
               <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
+                key={to} to={to} end={to === '/'}
                 className={({ isActive }) =>
-                  `block px-3 py-2 rounded text-sm transition-all ${
+                  `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 ${
                     isActive
-                      ? 'bg-card-hover text-white font-bold'
-                      : 'text-muted hover:text-white'
+                      ? 'bg-primary text-black font-bold text-[16px]'
+                      : 'text-muted hover:text-white hover:bg-card-hover text-[15px]'
                   }`
                 }
               >
-                {label}
+                {icon}{label}
               </NavLink>
             ))}
           </nav>
-        </div>
-
-        {/* Cuenta */}
-        <div className="bg-surface rounded-lg p-4 flex-1 flex flex-col">
-          <p className="text-muted text-xs font-bold uppercase tracking-widest mb-3">
-            Tu cuenta
-          </p>
-          <p className="text-white text-sm font-medium truncate">{user?.full_name ?? '—'}</p>
-          <p className="text-muted text-xs mt-0.5 mb-4">{user?.credit_balance ?? 0} créditos</p>
+          <div className="border-t border-card-hover my-3" />
           <button
             onClick={handleLogout}
-            className="mt-auto border border-card-hover text-muted text-xs rounded-pill px-4 py-1.5 hover:text-white hover:border-muted transition-colors w-fit"
+            className="flex items-center gap-3 px-3 py-2 rounded-md text-[15px] text-muted hover:text-white hover:bg-card-hover transition-all duration-150 w-full text-left"
           >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+            </svg>
             Cerrar sesión
           </button>
         </div>
       </aside>
 
-      {/* ── Main View ──────────────────────────────── */}
-      <main className="bg-surface rounded-lg overflow-y-auto">
-        {/* Gradiente lila → negro */}
-        <div className="h-20 bg-gradient-to-b from-[#2e1a4a] to-surface" />
-        <div className="-mt-8">
+      <main className="bg-night rounded-lg overflow-hidden flex flex-col gap-2">
+        <header className="bg-surface rounded-lg flex items-center justify-end gap-4 px-6 py-2 shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 bg-card-hover px-3 py-1.5 rounded-full">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--color-primary)' }}>
+                <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z" />
+              </svg>
+              {checkingPlan ? (
+                <span className="text-xs" style={{ color: '#a7a7a7' }}>...</span>
+              ) : esPro ? (
+                <span className="text-xs font-bold" style={{ color: '#A855F7' }}>PRO</span>
+              ) : (
+                <>
+                  <span className="text-white text-xs font-semibold">{user?.credito ?? 0}</span>
+                  <span className="text-muted text-xs">créditos</span>
+                </>
+              )}
+            </div>
+            {!checkingPlan && !esPro && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="text-xs font-bold px-3 py-1.5 rounded-full transition-all duration-150"
+                style={{ background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)', color: 'white' }}
+                onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
+                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+              >
+                ✦ Upgrade
+              </button>
+            )}
+          </div>
+          <div className="h-6 w-px bg-card-hover" />
+          <div className="flex items-center gap-2.5 mr-2">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 select-none"
+              style={{ background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' }}
+            >
+              {initials}
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-white text-sm font-medium truncate max-w-[220px]">{user?.nombreCompleto ?? '—'}</span>
+              <span className="text-muted text-[10px] truncate max-w-[220px]">{user?.email ?? '—'}</span>
+            </div>
+          </div>
+        </header>
+
+        <div className="bg-surface rounded-lg flex-1 overflow-y-auto">
           <Outlet />
         </div>
       </main>
 
-      {/* ── Player Bar ─────────────────────────────── */}
-      <footer
-        className="bg-surface rounded-lg flex items-center justify-between px-6 border-t border-card-hover"
-        style={{ gridColumn: '1 / -1' }}
-      >
-        <p className="text-muted text-sm">Player — próximamente</p>
-      </footer>
+      <UpgradeModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={() => setEsPro(true)}
+        userId={user?.id ?? ''}
+      />
     </div>
   )
 }
