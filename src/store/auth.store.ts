@@ -4,20 +4,18 @@ import { persist } from 'zustand/middleware'
 export interface AuthUser {
   id: string
   email: string
-  nombreCompleto: string
-  fotoBase64: string | null
-  credito: number
-  rolIds: string[]
-  roles: string[]        // ✅ agregado
-  biografia: string | null
-  createdAt: string
-  updatedAt: string
+  full_name: string
+  avatar_url: string | null
+  credit_balance: number
+  role: string
+  created_at: string
 }
 
 interface AuthState {
   user: AuthUser | null
   accessToken: string | null
-  setToken: (access: string) => void
+  refreshToken: string | null
+  setTokens: (access: string, refresh: string) => void
   setUser: (user: AuthUser) => void
   logout: () => void
 }
@@ -27,9 +25,10 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      setToken: (accessToken) => set({ accessToken }),
+      refreshToken: null,
+      setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
       setUser: (user) => set({ user }),
-      logout: () => set({ user: null, accessToken: null }),
+      logout: () => set({ user: null, accessToken: null, refreshToken: null }),
     }),
     { name: 'auth-storage' }
   )

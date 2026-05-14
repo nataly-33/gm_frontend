@@ -6,11 +6,11 @@ import LoginPage from '../pages/auth/LoginPage'
 import RegisterPage from '../pages/auth/RegisterPage'
 import PrivateRoute from './PrivateRoute'
 import AdminRoute from './AdminRoute'
-import RolesPage from '../pages/admin/RolesPage'
-import PlanesPage from '../pages/admin/PlanesPage'
 import DashboardPage from '../pages/admin/DashboardPage'
-import AdminProfilePage from '../pages/admin/AdminProfilePage'        // ✅
-import ClienteProfilePage from '../pages/cliente/ClienteProfilePage'  // ✅
+import PlanesPage from '../pages/admin/PlanesPage'
+import RolesPage from '../pages/admin/RolesPage'
+import AdminProfilePage from '../pages/admin/AdminProfilePage'
+import ClienteProfilePage from '../pages/cliente/ClienteProfilePage'
 import PaymentsPage from '../pages/cliente/Paymentspage'
 import CommunityPage from '../pages/cliente/CommunityPage'
 
@@ -22,6 +22,7 @@ const placeholder = (label: string) => (
 )
 
 export const router = createBrowserRouter([
+  // ── Auth ────────────────────────────────────────────────
   {
     element: <AuthLayout />,
     children: [
@@ -29,11 +30,13 @@ export const router = createBrowserRouter([
       { path: '/register', element: <RegisterPage /> },
     ],
   },
+
+  // ── App ─────────────────────────────────────────────────
   {
     element: <PrivateRoute />,
     children: [
 
-      // ── Rutas cliente ──────────────────────────
+      // Rutas cliente
       {
         element: <AppLayout />,
         children: [
@@ -41,12 +44,12 @@ export const router = createBrowserRouter([
           { path: '/library',   element: placeholder('Tu biblioteca') },
           { path: '/create',    element: placeholder('Crear canción') },
           { path: '/community', element: <CommunityPage /> },
-          { path: '/profile',   element: <ClienteProfilePage /> },  // ✅
+          { path: '/profile',   element: <ClienteProfilePage /> },
           { path: '/payments',  element: <PaymentsPage /> },
         ],
       },
 
-      // ── Rutas admin ────────────────────────────
+      // Rutas admin
       {
         element: <AdminRoute />,
         children: [
@@ -57,7 +60,7 @@ export const router = createBrowserRouter([
               { path: '/admin/roles',    element: <RolesPage /> },
               { path: '/admin/planes',   element: <PlanesPage /> },
               { path: '/admin/usuarios', element: placeholder('Gestión de usuarios') },
-              { path: '/admin/profile',  element: <AdminProfilePage /> },  // ✅
+              { path: '/admin/profile',  element: <AdminProfilePage /> },
             ],
           },
         ],

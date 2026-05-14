@@ -1,84 +1,46 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { useAuthStore } from '../../store/auth.store'
 import { authService } from '../../api/authService'
-import type { ModificarPerfilRequest } from '../../api/authService'
-import { clientService } from '../../api/client.service'
-import type { Tarjeta } from '../../api/client.service'
+import { clientService, type PaymentMethod } from '../../api/client.service'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY ?? '')
 
-// ─── Hook tarjetas ────────────────────────────────────────────────────────────
-
-function useTarjetas(usuarioId: string | undefined) {
-  const [tarjetas, setTarjetas] = useState<Tarjeta[]>([])
+// ── Hook payment methods ──────────────────────────────────────────────────────
+function usePaymentMethods() {
+  const [methods,  setMethods]  = useState<PaymentMethod[]>([])
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
 
-  const cargar = useCallback(async () => {
-    if (!usuarioId) return
+  const load = useCallback(async () => {
     setLoading(true)
-    try {
-      const data = await clientService.getTarjetas(usuarioId)
-      setTarjetas(data)
-    } catch {
-      setError('No se pudieron cargar las tarjetas')
-    } finally {
-      setLoading(false)
-    }
-  }, [usuarioId])
+    try   { setMethods(await clientService.getPaymentMethods()) }
+    catch { setError('No se pudieron cargar las tarjetas') }
+    finally { setLoading(false) }
+  }, [])
 
-  useEffect(() => { cargar() }, [cargar])
+  useEffect(() => { load() }, [load])
 
-  const agregar = async (paymentMethodId: string) => {
-    if (!usuarioId) return
+  const add = async (pmId: string) => {
     setLoading(true)
-    try {
-      const nueva = await clientService.crearTarjeta(usuarioId, paymentMethodId)
-      setTarjetas(prev => [...prev, nueva])
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Error al agregar tarjeta')
-    } finally {
-      setLoading(false)
-    }
+    try   { const pm = await clientService.savePaymentMethod(pmId); setMethods(prev => [...prev, pm]) }
+    catch (e: unknown) { setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Error al agregar tarjeta') }
+    finally { setLoading(false) }
   }
 
-  const eliminar = async (id: string) => {
+  const remove = async (id: number) => {
     setLoading(true)
-    try {
-      await clientService.eliminarTarjeta(id)
-      setTarjetas(prev => prev.filter(t => t.id !== id))
-    } catch {
-      setError('Error al eliminar tarjeta')
-    } finally {
-      setLoading(false)
-    }
+    try   { await clientService.deletePaymentMethod(id); setMethods(prev => prev.filter(m => m.id !== id)) }
+    catch { setError('Error al eliminar tarjeta') }
+    finally { setLoading(false) }
   }
 
-  return { tarjetas, loading, error, agregar, eliminar, recargar: cargar }
+  return { methods, loading, error, add, remove, reload: load }
 }
 
-// ─── Helpers tarjetas ─────────────────────────────────────────────────────────
-
-function brandColor(brand: string) {
-  const map: Record<string, string> = {
-    visa:       '#1A1F71',
-    mastercard: '#EB001B',
-    amex:       '#007BC1',
-  }
-  return map[brand.toLowerCase()] ?? '#A855F7'
-}
-
-// ─── Formulario Stripe ────────────────────────────────────────────────────────
-
-function FormularioTarjeta({
-  onSuccess,
-  onCancel,
-}: {
-  onSuccess: (pmId: string) => void
-  onCancel: () => void
-}) {
+// ── Stripe card form ──────────────────────────────────────────────────────────
+function AddCardForm({ onSuccess, onCancel }: { onSuccess: (pmId: string) => void; onCancel: () => void }) {
   const stripe   = useStripe()
   const elements = useElements()
   const [loading, setLoading] = useState(false)
@@ -89,479 +51,199 @@ function FormularioTarjeta({
     setLoading(true)
     setError('')
     try {
-      const cardElement = elements.getElement(CardElement)!
-      const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      })
-      if (stripeError) {
-        setError(stripeError.message ?? 'Error al agregar tarjeta')
-      } else {
-        onSuccess(paymentMethod.id)
-      }
-    } finally {
-      setLoading(false)
-    }
+      const cardEl = elements.getElement(CardElement)!
+      const { error: stripeErr, paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card: cardEl })
+      if (stripeErr) { setError(stripeErr.message ?? 'Error') }
+      else           { onSuccess(paymentMethod.id) }
+    } finally { setLoading(false) }
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div
-        className="rounded-lg px-4 py-3"
-        style={{ background: '#0e0e0e', border: '1px solid rgba(168,85,247,0.35)' }}
-      >
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '14px',
-                color: '#ffffff',
-                fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-                '::placeholder': { color: '#6b7280' },
-              },
-              invalid: { color: '#ef4444' },
-            },
-          }}
-        />
+    <div className="flex flex-col gap-3 mt-4 p-4 bg-card rounded-lg">
+      <div className="rounded-lg px-4 py-3" style={{ background: '#121212', border: '1px solid #2a2a2a' }}>
+        <CardElement options={{ style: { base: { fontSize: '14px', color: '#fff', fontFamily: 'inherit', '::placeholder': { color: '#6b7280' } }, invalid: { color: '#ef4444' } } }} />
       </div>
       {error && <p className="text-red-400 text-xs">{error}</p>}
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !stripe}
-        className="w-full py-2.5 rounded-full text-xs font-bold disabled:opacity-50 transition-all"
-        style={{ background: '#A855F7', color: 'white' }}
-        onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9333ea' }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#A855F7' }}
-      >
-        {loading ? 'Agregando...' : 'Guardar tarjeta'}
-      </button>
-      <button
-        onClick={onCancel}
-        className="text-xs py-1 text-center transition-colors hover:text-white"
-        style={{ color: '#a7a7a7', background: 'transparent' }}
-      >
-        Cancelar
-      </button>
-    </div>
-  )
-}
-
-// ─── Sección tarjetas ─────────────────────────────────────────────────────────
-
-function TarjetasSection({ usuarioId }: { usuarioId: string }) {
-  const { tarjetas, loading, error, agregar, eliminar } = useTarjetas(usuarioId)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [showForm,  setShowForm]  = useState(false)
-
-  async function handleTarjetaAgregada(pmId: string) {
-    await agregar(pmId)
-    setShowForm(false)
-  }
-
-  return (
-    <div className="max-w-2xl" style={{ marginTop: '8px' }}>
-      {/* Encabezado */}
-      <div className="flex items-center justify-between mb-3">
-        <label
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: '#9CA3AF' }}
-        >
-          Métodos de pago
-        </label>
-        <button
-          onClick={() => setShowForm(s => !s)}
-          className="text-xs font-semibold px-3 py-1.5 rounded-full transition-all flex items-center gap-1"
-          style={{
-            background: showForm ? 'rgba(168,85,247,0.25)' : 'rgba(168,85,247,0.12)',
-            color: '#C084FC',
-            border: '1px solid rgba(168,85,247,0.3)',
-          }}
-        >
-          {showForm ? '✕ Cancelar' : '+ Agregar'}
+      <div className="flex gap-2">
+        <button onClick={handleSubmit} disabled={loading || !stripe}
+          className="px-4 py-2 rounded-lg text-sm font-bold text-black disabled:opacity-50"
+          style={{ background: '#A855F7' }}>
+          {loading ? 'Agregando...' : 'Agregar tarjeta'}
+        </button>
+        <button onClick={onCancel} className="px-4 py-2 rounded-lg text-sm font-bold text-muted hover:text-white border border-card-hover">
+          Cancelar
         </button>
       </div>
-
-      {error && (
-        <p className="text-xs text-red-400 mb-2">{error}</p>
-      )}
-
-      {/* Formulario Stripe */}
-      {showForm && (
-        <div
-          className="mb-4 p-4 rounded-xl"
-          style={{
-            background: 'rgba(168,85,247,0.08)',
-            border: '1px solid rgba(168,85,247,0.2)',
-          }}
-        >
-          <p className="text-xs mb-3" style={{ color: '#a7a7a7' }}>
-            Tus datos están protegidos por Stripe. No almacenamos información de tu tarjeta.
-          </p>
-          <Elements stripe={stripePromise}>
-            <FormularioTarjeta
-              onSuccess={handleTarjetaAgregada}
-              onCancel={() => setShowForm(false)}
-            />
-          </Elements>
-        </div>
-      )}
-
-      {/* Lista */}
-      {loading && tarjetas.length === 0 ? (
-        <p className="text-sm text-gray-500">Cargando...</p>
-      ) : tarjetas.length === 0 ? (
-        <p className="text-sm italic" style={{ color: '#6B7280' }}>
-          Sin métodos de pago guardados
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {tarjetas.map(t => (
-            <div
-              key={t.id}
-              onMouseEnter={() => setHoveredId(t.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              className="relative flex items-center gap-4 px-4 py-3 rounded-xl transition-all"
-              style={{
-                background: hoveredId === t.id
-                  ? 'rgba(168,85,247,0.12)'
-                  : 'rgba(255,255,255,0.04)',
-                border: '1px solid rgba(168,85,247,0.15)',
-                cursor: 'default',
-              }}
-            >
-              {/* Chip marca */}
-              <div
-                className="w-10 h-7 rounded-md flex items-center justify-center text-white text-[10px] font-black shrink-0 uppercase"
-                style={{ background: brandColor(t.brand), letterSpacing: '0.05em' }}
-              >
-                {t.brand.slice(0, 4)}
-              </div>
-
-              {/* Número + detalles al hover */}
-              <div className="flex-1">
-                <p className="text-sm text-white font-mono tracking-widest">
-                  •••• •••• •••• {String(t.last4).padStart(4, '0')}
-                </p>
-                {hoveredId === t.id && (
-                  <p className="text-xs mt-0.5" style={{ color: '#C084FC' }}>
-                    Vence {String(t.expMonth).padStart(2, '0')}/{t.expYear}
-                    <span className="ml-3 text-gray-400 capitalize">{t.brand}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Botón eliminar visible solo en hover */}
-              {hoveredId === t.id && (
-                <button
-                  onClick={() => eliminar(t.id)}
-                  className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-all"
-                  style={{
-                    background: 'rgba(239,68,68,0.15)',
-                    color: '#F87171',
-                    border: '1px solid rgba(239,68,68,0.25)',
-                  }}
-                  title="Eliminar tarjeta"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
 
-// ─── Página principal ─────────────────────────────────────────────────────────
-
+// ── ClienteProfilePage ────────────────────────────────────────────────────────
 export default function ClienteProfilePage() {
   const { user, setUser } = useAuthStore()
+  const pm = usePaymentMethods()
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const [editando, setEditando] = useState(false)
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState<string | null>(null)
   const [success,  setSuccess]  = useState(false)
+  const [addingCard, setAddingCard] = useState(false)
 
   const [form, setForm] = useState({
-    nombreCompleto: user?.nombreCompleto ?? '',
-    email:          user?.email          ?? '',
-    biografia:      user?.biografia      ?? '',
-    password:       '',
-    fotoBase64:     user?.fotoBase64     ?? '',
+    full_name:  user?.full_name  ?? '',
+    avatar_url: user?.avatar_url ?? '',
   })
-
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setForm(f => ({ ...f, [e.target.name]: e.target.value }))
-  }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => setForm(f => ({ ...f, fotoBase64: reader.result as string }))
+    reader.onload = () => setForm(f => ({ ...f, avatar_url: reader.result as string }))
     reader.readAsDataURL(file)
   }
 
-  function handleCancelar() {
-    setForm({
-      nombreCompleto: user?.nombreCompleto ?? '',
-      email:          user?.email          ?? '',
-      biografia:      user?.biografia      ?? '',
-      password:       '',
-      fotoBase64:     user?.fotoBase64     ?? '',
-    })
-    setEditando(false)
-    setError(null)
-  }
-
   async function handleGuardar() {
-    if (!user) return
     setLoading(true)
     setError(null)
-    setSuccess(false)
     try {
-      const payload: ModificarPerfilRequest = { id: user.id }
-      if (form.nombreCompleto !== user.nombreCompleto)       payload.nombreCompleto = form.nombreCompleto
-      if (form.email          !== user.email)                payload.email          = form.email
-      if (form.biografia      !== (user.biografia ?? ''))    payload.biografia      = form.biografia
-      if (form.fotoBase64     !== (user.fotoBase64 ?? ''))   payload.fotoBase64     = form.fotoBase64
-      if (form.password)                                     payload.password       = form.password
-
-      await authService.modificarPerfil(payload)
-      const actualizado = await authService.obtenerPerfil(user.id)
+      const payload: { full_name?: string; avatar_url?: string } = {}
+      if (form.full_name  !== user?.full_name)        payload.full_name  = form.full_name
+      if (form.avatar_url !== (user?.avatar_url ?? '')) payload.avatar_url = form.avatar_url
+      await authService.updateProfile(payload)
+      const actualizado = await authService.getProfile()
       setUser(actualizado)
       setEditando(false)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Error al guardar los cambios')
-    } finally {
-      setLoading(false)
-    }
+    } catch (e: unknown) {
+      setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Error al guardar')
+    } finally { setLoading(false) }
   }
 
-  const initials = user?.nombreCompleto
-    ? user.nombreCompleto.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+  const initials = user?.full_name
+    ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
-  const joinDate = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-    : null
-
   return (
-    <div className="text-white flex flex-col h-full overflow-y-auto">
+    <div className="p-6 text-white max-w-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-xl font-black">Mi perfil</h2>
+        {success && <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-500/20 text-green-400">Guardado</span>}
+      </div>
 
-      {/* ── Hero banner ─────────────────────────────── */}
-      <div
-        className="relative flex items-end gap-6 px-8 pt-12 pb-6 shrink-0"
-        style={{
-          background: 'linear-gradient(180deg, #4C1D95 0%, #2D1060 60%, transparent 100%)',
-          minHeight: '220px',
-        }}
-      >
-        {/* Avatar */}
-        <div className="relative shrink-0 group">
-          {form.fotoBase64 ? (
-            <img
-              src={form.fotoBase64}
-              alt="Avatar"
-              className="w-36 h-36 rounded-full object-cover shadow-2xl"
-              style={{ border: '3px solid rgba(168,85,247,0.5)' }}
-            />
+      {/* Avatar + datos */}
+      <div className="bg-surface rounded-xl p-6 mb-6">
+        <div className="flex items-center gap-5 mb-6">
+          {form.avatar_url ? (
+            <img src={form.avatar_url} alt="Avatar" className="w-20 h-20 rounded-full object-cover" style={{ border: '2px solid #A855F7' }} />
           ) : (
-            <div
-              className="w-36 h-36 rounded-full flex items-center justify-center text-white text-4xl font-black shadow-2xl select-none"
-              style={{ background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' }}
-            >
+            <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-black select-none"
+              style={{ background: 'linear-gradient(135deg,#A855F7 0%,#7C3AED 100%)' }}>
               {initials}
             </div>
           )}
-
           {editando && (
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="absolute inset-0 rounded-full flex flex-col items-center justify-center gap-1 transition-opacity"
-              style={{ background: 'rgba(0,0,0,0.55)' }}
-              title="Cambiar foto"
-            >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                <path d="M12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2zm6.4-9.6h-1.7l-1.5-1.6H8.8L7.3 5.6H5.6A2.4 2.4 0 0 0 3.2 8v9.6a2.4 2.4 0 0 0 2.4 2.4h12.8a2.4 2.4 0 0 0 2.4-2.4V8a2.4 2.4 0 0 0-2.4-2.4z"/>
-              </svg>
-              <span className="text-white text-[11px] font-semibold">Cambiar foto</span>
-            </button>
+            <>
+              <button onClick={() => fileRef.current?.click()} className="text-xs px-4 py-2 rounded-lg border border-card-hover text-muted hover:text-white hover:border-primary transition-colors">
+                Cambiar foto
+              </button>
+              <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            </>
           )}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
         </div>
 
-        {/* Info hero */}
-        <div className="flex flex-col gap-1 pb-1">
-          <span className="text-xs font-semibold text-purple-300 uppercase tracking-widest">Perfil</span>
-          {editando ? (
-            <input
-              name="nombreCompleto"
-              value={form.nombreCompleto}
-              onChange={handleChange}
-              className="bg-transparent border-b-2 text-white text-4xl font-black outline-none pb-1 w-80"
-              style={{ borderColor: '#A855F7', caretColor: '#A855F7' }}
-              placeholder="Tu nombre"
-            />
-          ) : (
-            <h1 className="text-5xl font-black leading-none tracking-tight">{user?.nombreCompleto}</h1>
-          )}
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {user?.roles?.map((r: string) => (
-              <span
-                key={r}
-                className="text-xs font-bold px-2.5 py-0.5 rounded-full"
-                style={{ background: '#A855F730', color: '#C084FC' }}
-              >
-                {r}
-              </span>
-            ))}
-            {joinDate && (
-              <span className="text-purple-300 text-xs">Miembro desde {joinDate}</span>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-muted uppercase tracking-wider">Nombre completo</label>
+            {editando ? (
+              <input name="full_name" value={form.full_name}
+                onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
+                className="bg-card-hover border border-transparent rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary text-white transition-colors" />
+            ) : (
+              <p className="text-white text-sm font-medium">{user?.full_name ?? '—'}</p>
             )}
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-muted uppercase tracking-wider">Email</label>
+            <p className="text-white text-sm font-medium">{user?.email ?? '—'}</p>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-bold text-muted uppercase tracking-wider">Créditos disponibles</label>
+            <p className="text-primary text-lg font-black">{user?.credit_balance ?? 0}</p>
           </div>
         </div>
 
-        {/* Botón editar */}
-        <div className="absolute top-4 right-6 flex gap-2">
-          {!editando ? (
-            <button
-              onClick={() => setEditando(true)}
-              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full transition-all"
-              style={{
-                background: 'rgba(168,85,247,0.15)',
-                color: '#C084FC',
-                border: '1px solid rgba(168,85,247,0.3)',
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-              </svg>
-              Editar perfil
-            </button>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleCancelar}
-                disabled={loading}
-                className="text-xs font-semibold px-4 py-2 rounded-full transition-all"
-                style={{ background: 'rgba(255,255,255,0.1)', color: '#9CA3AF' }}
-              >
+        {error && <p className="text-red-400 text-xs mt-4">{error}</p>}
+
+        <div className="flex gap-3 mt-6">
+          {editando ? (
+            <>
+              <button onClick={handleGuardar} disabled={loading}
+                className="px-6 py-2.5 rounded-lg text-sm font-bold text-black disabled:opacity-50"
+                style={{ background: '#A855F7' }}>
+                {loading ? 'Guardando...' : 'Guardar'}
+              </button>
+              <button onClick={() => { setEditando(false); setForm({ full_name: user?.full_name ?? '', avatar_url: user?.avatar_url ?? '' }) }}
+                className="px-6 py-2.5 rounded-lg text-sm font-bold text-muted hover:text-white border border-card-hover">
                 Cancelar
               </button>
-              <button
-                onClick={handleGuardar}
-                disabled={loading}
-                className="text-xs font-semibold px-4 py-2 rounded-full transition-all disabled:opacity-50"
-                style={{ background: '#A855F7', color: 'white' }}
-              >
-                {loading ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
+            </>
+          ) : (
+            <button onClick={() => setEditando(true)} className="px-6 py-2.5 rounded-lg text-sm font-bold text-black" style={{ background: '#A855F7' }}>
+              Editar perfil
+            </button>
           )}
         </div>
       </div>
 
-      {/* ── Contenido ───────────────────────────────── */}
-      <div className="px-8 py-6 flex flex-col gap-6" style={{ background: 'var(--color-surface)' }}>
-
-        {error && (
-          <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
-            ✓ Perfil actualizado correctamente
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-5 max-w-2xl">
-          <Field label="Correo electrónico">
-            {editando ? (
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                style={{ caretColor: '#A855F7' }}
-                className="input-profile"
-                placeholder="correo@ejemplo.com"
-              />
-            ) : (
-              <Value>{user?.email}</Value>
-            )}
-          </Field>
-
-          {editando && (
-            <Field label="Nueva contraseña">
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                style={{ caretColor: '#A855F7' }}
-                className="input-profile"
-                placeholder="Dejar vacío para no cambiar"
-              />
-            </Field>
-          )}
-
-          <Field label="Miembro desde">
-            <Value>{joinDate ?? '—'}</Value>
-          </Field>
+      {/* Métodos de pago */}
+      <div className="bg-surface rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold">Métodos de pago</h3>
+          <button onClick={() => setAddingCard(v => !v)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-card-hover text-muted hover:text-white hover:border-primary transition-colors">
+            {addingCard ? 'Cancelar' : '+ Agregar tarjeta'}
+          </button>
         </div>
 
-        <div className="max-w-2xl">
-          <Field label="Biografía">
-            {editando ? (
-              <textarea
-                name="biografia"
-                value={form.biografia}
-                onChange={handleChange}
-                rows={3}
-                placeholder="Cuéntanos algo sobre ti..."
-                style={{ caretColor: '#A855F7' }}
-                className="input-profile resize-none"
-              />
-            ) : (
-              <Value>
-                {user?.biografia || <span className="text-muted italic text-sm">Sin biografía</span>}
-              </Value>
-            )}
-          </Field>
-        </div>
+        {pm.error && <p className="text-red-400 text-xs mb-3">{pm.error}</p>}
 
-        {/* ── Tarjetas ───────────────────────────────── */}
-        {user?.id && (
-          <TarjetasSection usuarioId={user.id} />
+        {addingCard && (
+          <Elements stripe={stripePromise}>
+            <AddCardForm
+              onSuccess={async pmId => { await pm.add(pmId); setAddingCard(false) }}
+              onCancel={() => setAddingCard(false)}
+            />
+          </Elements>
         )}
 
+        {pm.loading ? (
+          <p className="text-muted text-sm">Cargando...</p>
+        ) : pm.methods.length === 0 && !addingCard ? (
+          <p className="text-muted text-sm">No tenés tarjetas guardadas.</p>
+        ) : (
+          <div className="flex flex-col gap-2 mt-3">
+            {pm.methods.map(m => (
+              <div key={m.id} className="flex items-center justify-between rounded-lg px-4 py-3 bg-card-hover">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">💳</span>
+                  <div>
+                    <p className="text-white text-sm font-bold capitalize">{m.brand} •••• {m.last4}</p>
+                    <p className="text-muted text-xs">Vence {m.exp_month}/{m.exp_year}</p>
+                  </div>
+                </div>
+                <button onClick={() => pm.remove(m.id)} className="text-xs px-3 py-1 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-400">
+                  Eliminar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
-}
-
-// ─── Helpers UI ───────────────────────────────────────────────────────────────
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function Value({ children }: { children: React.ReactNode }) {
-  return <p className="text-white text-sm">{children ?? '—'}</p>
 }

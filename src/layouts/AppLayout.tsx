@@ -64,16 +64,15 @@ const NAV_ITEMS = [
 
 interface Suscripcion {
   id: string
-  plan: number
-  planNombre: string
-  estado: string
+  plan: { id: number; slug: string; name: string }
+  status: string
 }
 
 export default function AppLayout() {
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
 
-  const [esPro, setEsPro]               = useState(false)
+  const [planBadge,     setPlanBadge]    = useState<string | null>(null)
   const [checkingPlan, setCheckingPlan] = useState(true)
   const [showModal, setShowModal]       = useState(false)
 
@@ -82,11 +81,11 @@ export default function AppLayout() {
       setCheckingPlan(false)
       return
     }
-    client.get(ENDPOINTS.suscripciones.porUsuario(user.id))
+    client.get(ENDPOINTS.credits.subscriptions)
       .then(({ data }: { data: Suscripcion[] }) => {
-        const activa = data.find(s => s.estado === 'activa')
-        if (activa?.planNombre?.toLowerCase() === 'pro') {
-          setEsPro(true)
+        const activa = data.find(s => s.status === 'active')
+        if (activa?.plan?.slug && activa.plan.slug !== 'free') {
+          setPlanBadge(activa.plan.name.toUpperCase())
         }
       })
       .catch(() => {})
@@ -98,8 +97,8 @@ export default function AppLayout() {
     navigate('/login', { replace: true })
   }
 
-  const initials = user?.nombreCompleto
-    ? user.nombreCompleto.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+  const initials = user?.full_name
+    ? user.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
   return (
@@ -148,16 +147,16 @@ export default function AppLayout() {
               </svg>
               {checkingPlan ? (
                 <span className="text-xs" style={{ color: '#a7a7a7' }}>...</span>
-              ) : esPro ? (
-                <span className="text-xs font-bold" style={{ color: '#A855F7' }}>PRO</span>
+              ) : planBadge ? (
+                <span className="text-xs font-bold" style={{ color: '#A855F7' }}>{planBadge}</span>
               ) : (
                 <>
-                  <span className="text-white text-xs font-semibold">{user?.credito ?? 0}</span>
+                  <span className="text-white text-xs font-semibold">{user?.credit_balance ?? 0}</span>
                   <span className="text-muted text-xs">créditos</span>
                 </>
               )}
             </div>
-            {!checkingPlan && !esPro && (
+            {!checkingPlan && !planBadge && (
               <button
                 onClick={() => setShowModal(true)}
                 className="text-xs font-bold px-3 py-1.5 rounded-full transition-all duration-150"
@@ -178,7 +177,7 @@ export default function AppLayout() {
               {initials}
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-white text-sm font-medium truncate max-w-[220px]">{user?.nombreCompleto ?? '—'}</span>
+              <span className="text-white text-sm font-medium truncate max-w-[220px]">{user?.full_name ?? '—'}</span>
               <span className="text-muted text-[10px] truncate max-w-[220px]">{user?.email ?? '—'}</span>
             </div>
           </div>
@@ -192,8 +191,7 @@ export default function AppLayout() {
       <UpgradeModal
         show={showModal}
         onClose={() => setShowModal(false)}
-        onSuccess={() => setEsPro(true)}
-        userId={user?.id ?? ''}
+        onSuccess={(planName) => { setPlanBadge(planName); setShowModal(false) }}
       />
     </div>
   )

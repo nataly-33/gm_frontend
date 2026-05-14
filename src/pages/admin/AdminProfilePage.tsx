@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react'
 import { useAuthStore } from '../../store/auth.store'
 import { authService } from '../../api/authService'
-import type { ModificarPerfilRequest } from '../../api/authService'
 
 export default function AdminProfilePage() {
   const { user, setUser } = useAuthStore()
@@ -12,16 +11,13 @@ export default function AdminProfilePage() {
   const [success,  setSuccess]  = useState(false)
 
   const [form, setForm] = useState({
-    nombreCompleto: user?.nombreCompleto ?? '',
-    email:          user?.email          ?? '',
-    biografia:      user?.biografia      ?? '',
-    password:       '',
-    fotoBase64:     user?.fotoBase64     ?? '',
+    full_name:  user?.full_name  ?? '',
+    avatar_url: user?.avatar_url ?? '',
   })
 
   const fileRef = useRef<HTMLInputElement>(null)
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }))
   }
 
@@ -29,18 +25,12 @@ export default function AdminProfilePage() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => setForm(f => ({ ...f, fotoBase64: reader.result as string }))
+    reader.onload = () => setForm(f => ({ ...f, avatar_url: reader.result as string }))
     reader.readAsDataURL(file)
   }
 
   function handleCancelar() {
-    setForm({
-      nombreCompleto: user?.nombreCompleto ?? '',
-      email:          user?.email          ?? '',
-      biografia:      user?.biografia      ?? '',
-      password:       '',
-      fotoBase64:     user?.fotoBase64     ?? '',
-    })
+    setForm({ full_name: user?.full_name ?? '', avatar_url: user?.avatar_url ?? '' })
     setEditando(false)
     setError(null)
   }
@@ -51,232 +41,136 @@ export default function AdminProfilePage() {
     setError(null)
     setSuccess(false)
     try {
-      const payload: ModificarPerfilRequest = { id: user.id }
-      if (form.nombreCompleto !== user.nombreCompleto)       payload.nombreCompleto = form.nombreCompleto
-      if (form.email          !== user.email)                payload.email          = form.email
-      if (form.biografia      !== (user.biografia ?? ''))    payload.biografia      = form.biografia
-      if (form.fotoBase64     !== (user.fotoBase64 ?? ''))   payload.fotoBase64     = form.fotoBase64
-      if (form.password)                                     payload.password       = form.password
+      const payload: { full_name?: string; avatar_url?: string } = {}
+      if (form.full_name  !== user.full_name)  payload.full_name  = form.full_name
+      if (form.avatar_url !== (user.avatar_url ?? '')) payload.avatar_url = form.avatar_url
 
-      await authService.modificarPerfil(payload)
-      const actualizado = await authService.obtenerPerfil(user.id)
+      await authService.updateProfile(payload)
+      const actualizado = await authService.getProfile()
       setUser(actualizado)
       setEditando(false)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? 'Error al guardar los cambios')
+    } catch (e: unknown) {
+      setError((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Error al guardar los cambios')
     } finally {
       setLoading(false)
     }
   }
 
-  const initials = user?.nombreCompleto
-    ? user.nombreCompleto.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  const initials = user?.full_name
+    ? user.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
     : '?'
 
-  const joinDate = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
+  const joinDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
     : null
 
   return (
-    <div className="text-white flex flex-col h-full overflow-y-auto">
+    <div className="p-6 text-white max-w-2xl">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-xl font-black">Mi perfil</h2>
+          {joinDate && <p className="text-muted text-xs mt-0.5">Miembro desde {joinDate}</p>}
+        </div>
+        {success && (
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-green-500/20 text-green-400">
+            Guardado correctamente
+          </span>
+        )}
+      </div>
 
-      {/* ── Hero banner ─────────────────────────────── */}
-      <div
-        className="relative flex items-end gap-6 px-8 pt-12 pb-6 shrink-0"
-        style={{
-          background: 'linear-gradient(180deg, #4C1D95 0%, #2D1060 60%, transparent 100%)',
-          minHeight: '220px',
-        }}
-      >
-        {/* Avatar */}
-        <div className="relative shrink-0 group">
-          {form.fotoBase64 ? (
-            <img
-              src={form.fotoBase64}
-              alt="Avatar"
-              className="w-36 h-36 rounded-full object-cover shadow-2xl"
-              style={{ border: '3px solid rgba(168,85,247,0.5)' }}
-            />
-          ) : (
-            <div
-              className="w-36 h-36 rounded-full flex items-center justify-center text-white text-4xl font-black shadow-2xl select-none"
-              style={{ background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' }}
-            >
-              {initials}
-            </div>
-          )}
-
-          {editando && (
+      {/* Avatar */}
+      <div className="flex items-center gap-5 mb-8">
+        {form.avatar_url ? (
+          <img
+            src={form.avatar_url}
+            alt="Avatar"
+            className="w-20 h-20 rounded-full object-cover"
+            style={{ border: '2px solid #A855F7' }}
+          />
+        ) : (
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-black select-none"
+            style={{ background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' }}
+          >
+            {initials}
+          </div>
+        )}
+        {editando && (
+          <>
             <button
               onClick={() => fileRef.current?.click()}
-              className="absolute inset-0 rounded-full flex flex-col items-center justify-center gap-1 transition-opacity"
-              style={{ background: 'rgba(0,0,0,0.55)' }}
-              title="Cambiar foto"
+              className="text-xs px-4 py-2 rounded-lg border border-card-hover text-muted hover:text-white hover:border-primary transition-colors"
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                <path d="M12 15.2A3.2 3.2 0 1 1 15.2 12 3.2 3.2 0 0 1 12 15.2zm6.4-9.6h-1.7l-1.5-1.6H8.8L7.3 5.6H5.6A2.4 2.4 0 0 0 3.2 8v9.6a2.4 2.4 0 0 0 2.4 2.4h12.8a2.4 2.4 0 0 0 2.4-2.4V8a2.4 2.4 0 0 0-2.4-2.4z"/>
-              </svg>
-              <span className="text-white text-[11px] font-semibold">Cambiar foto</span>
+              Cambiar foto
             </button>
-          )}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-        </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+          </>
+        )}
+      </div>
 
-        {/* Info hero */}
-        <div className="flex flex-col gap-1 pb-1">
-          <span className="text-xs font-semibold text-purple-300 uppercase tracking-widest">Perfil</span>
+      {/* Campos */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-bold text-muted uppercase tracking-wider">Nombre completo</label>
           {editando ? (
             <input
-              name="nombreCompleto"
-              value={form.nombreCompleto}
+              name="full_name"
+              value={form.full_name}
               onChange={handleChange}
-              className="bg-transparent border-b-2 text-white text-4xl font-black outline-none pb-1 w-80"
-              style={{ borderColor: '#A855F7', caretColor: '#A855F7' }}
-              placeholder="Tu nombre"
+              className="bg-card-hover border border-transparent rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors text-white"
             />
           ) : (
-            <h1 className="text-5xl font-black leading-none tracking-tight">{user?.nombreCompleto}</h1>
+            <p className="text-white text-sm font-medium">{user?.full_name ?? '—'}</p>
           )}
-          <div className="flex items-center gap-3 mt-2 flex-wrap">
-            {user?.roles?.map(r => (
-              <span
-                key={r}
-                className="text-xs font-bold px-2.5 py-0.5 rounded-full"
-                style={{ background: '#A855F730', color: '#C084FC' }}
-              >
-                {r}
-              </span>
-            ))}
-            {joinDate && (
-              <span className="text-purple-300 text-xs">Miembro desde {joinDate}</span>
-            )}
-          </div>
         </div>
 
-        {/* Botón editar */}
-        <div className="absolute top-4 right-6 flex gap-2">
-          {!editando ? (
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-bold text-muted uppercase tracking-wider">Email</label>
+          <p className="text-white text-sm font-medium">{user?.email ?? '—'}</p>
+          <p className="text-muted text-xs">El email no se puede cambiar desde el panel.</p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-bold text-muted uppercase tracking-wider">Rol</label>
+          <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold w-fit">
+            {user?.role ?? 'admin'}
+          </span>
+        </div>
+      </div>
+
+      {error && <p className="text-red-400 text-xs mb-4">{error}</p>}
+
+      {/* Botones */}
+      <div className="flex gap-3">
+        {editando ? (
+          <>
             <button
-              onClick={() => setEditando(true)}
-              className="flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-full transition-all"
-              style={{ background: 'rgba(168,85,247,0.15)', color: '#C084FC', border: '1px solid rgba(168,85,247,0.3)' }}
+              onClick={handleGuardar}
+              disabled={loading}
+              className="px-6 py-2.5 rounded-lg text-sm font-bold text-black disabled:opacity-50 transition-all"
+              style={{ background: '#A855F7' }}
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-              </svg>
-              Editar perfil
+              {loading ? 'Guardando...' : 'Guardar cambios'}
             </button>
-          ) : (
-            <div className="flex gap-2">
-              <button
-                onClick={handleCancelar}
-                disabled={loading}
-                className="text-xs font-semibold px-4 py-2 rounded-full transition-all"
-                style={{ background: 'rgba(255,255,255,0.1)', color: '#9CA3AF' }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGuardar}
-                disabled={loading}
-                className="text-xs font-semibold px-4 py-2 rounded-full transition-all disabled:opacity-50"
-                style={{ background: '#A855F7', color: 'white' }}
-              >
-                {loading ? 'Guardando...' : 'Guardar cambios'}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Contenido ───────────────────────────────── */}
-      <div className="px-8 py-6 flex flex-col gap-6" style={{ background: 'var(--color-surface)' }}>
-
-        {error && (
-          <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-            {error}
-          </div>
+            <button
+              onClick={handleCancelar}
+              className="px-6 py-2.5 rounded-lg text-sm font-bold text-muted hover:text-white border border-card-hover transition-colors"
+            >
+              Cancelar
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setEditando(true)}
+            className="px-6 py-2.5 rounded-lg text-sm font-bold text-black transition-all"
+            style={{ background: '#A855F7' }}
+          >
+            Editar perfil
+          </button>
         )}
-        {success && (
-          <div className="px-4 py-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
-            ✓ Perfil actualizado correctamente
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-5 max-w-2xl">
-          <Field label="Correo electrónico">
-            {editando ? (
-              <input
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={handleChange}
-                style={{ caretColor: '#A855F7' }}
-                className="input-profile"
-                placeholder="correo@ejemplo.com"
-              />
-            ) : (
-              <Value>{user?.email}</Value>
-            )}
-          </Field>
-
-          {editando && (
-            <Field label="Nueva contraseña">
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                style={{ caretColor: '#A855F7' }}
-                className="input-profile"
-                placeholder="Dejar vacío para no cambiar"
-              />
-            </Field>
-          )}
-
-          <Field label="Miembro desde">
-            <Value>{joinDate ?? '—'}</Value>
-          </Field>
-        </div>
-
-        <div className="max-w-2xl">
-          <Field label="Biografía">
-            {editando ? (
-              <textarea
-                name="biografia"
-                value={form.biografia}
-                onChange={handleChange}
-                rows={3}
-                placeholder="Cuéntanos algo sobre ti..."
-                style={{ caretColor: '#A855F7' }}
-                className="input-profile resize-none"
-              />
-            ) : (
-              <Value>
-                {user?.biografia || <span className="text-muted italic text-sm">Sin biografía</span>}
-              </Value>
-            )}
-          </Field>
-        </div>
-
       </div>
     </div>
   )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function Value({ children }: { children: React.ReactNode }) {
-  return <p className="text-white text-sm">{children ?? '—'}</p>
 }

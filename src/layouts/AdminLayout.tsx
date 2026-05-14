@@ -58,8 +58,8 @@ export default function AdminLayout() {
     navigate('/login', { replace: true })
   }
 
-  const initials = user?.nombreCompleto
-    ? user.nombreCompleto
+  const initials = user?.full_name
+    ? user.full_name
         .split(' ')
         .map((n: string) => n[0])
         .join('')
@@ -147,9 +147,9 @@ export default function AdminLayout() {
             to="/admin/profile"
             className="flex items-center gap-2.5 mr-2 hover:opacity-80 transition-opacity"
           >
-            {user?.fotoBase64 ? (
+            {user?.avatar_url ? (
               <img
-                src={user.fotoBase64}
+                src={user.avatar_url ?? ''}
                 alt="Avatar"
                 className="w-8 h-8 rounded-full object-cover shrink-0"
                 style={{ border: '2px solid #A855F7' }}
@@ -164,7 +164,7 @@ export default function AdminLayout() {
             )}
             <div className="flex flex-col leading-tight">
               <span className="text-white text-sm font-medium truncate max-w-[220px]">
-                {user?.nombreCompleto ?? '—'}
+                {user?.full_name ?? '—'}
               </span>
               <span className="text-muted text-[10px] truncate max-w-[220px]">
                 {user?.email ?? '—'}

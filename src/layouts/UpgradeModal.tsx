@@ -1,85 +1,49 @@
 import { useState } from 'react'
-import { clientService, type Plan, type Tarjeta } from '../api/client.service'
+import { clientService, type CreditPlan, type PaymentMethod } from '../api/client.service'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY)
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY ?? '')
 
-type ModalStep = 'planes' | 'tarjetas' | 'nueva-tarjeta' | 'confirmando' | 'exito' | 'error'
+type Step = 'plans' | 'payment-methods' | 'new-card' | 'processing' | 'success' | 'error'
 
 interface Props {
   show: boolean
   onClose: () => void
-  onSuccess: () => void
-  userId: string
+  onSuccess: (planName: string) => void
 }
 
-// ── Formulario Stripe ─────────────────────────────────────────────────────────
-function FormularioTarjeta({
-  onSuccess,
-  onCancel,
-}: {
-  onSuccess: (pmId: string) => void
-  onCancel: () => void
-}) {
-  const stripe = useStripe()
+// ── Stripe card form ──────────────────────────────────────────────────────────
+function CardForm({ onSuccess, onCancel }: { onSuccess: (pmId: string) => void; onCancel: () => void }) {
+  const stripe   = useStripe()
   const elements = useElements()
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error,   setError]   = useState('')
 
   async function handleSubmit() {
     if (!stripe || !elements) return
     setLoading(true)
     setError('')
     try {
-      const cardElement = elements.getElement(CardElement)!
-      const { error: stripeError, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      })
-      if (stripeError) {
-        setError(stripeError.message ?? 'Error al agregar tarjeta')
-      } else {
-        onSuccess(paymentMethod.id)
-      }
-    } finally {
-      setLoading(false)
-    }
+      const cardEl = elements.getElement(CardElement)!
+      const { error: stripeErr, paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card: cardEl })
+      if (stripeErr) { setError(stripeErr.message ?? 'Error al agregar tarjeta') }
+      else           { onSuccess(paymentMethod.id) }
+    } finally { setLoading(false) }
   }
 
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-lg px-4 py-4" style={{ background: '#121212', border: '1px solid #2a2a2a' }}>
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '14px',
-                color: '#ffffff',
-                fontFamily: "'Helvetica Neue', Helvetica, sans-serif",
-                '::placeholder': { color: '#6b7280' },
-              },
-              invalid: { color: '#ef4444' },
-            },
-          }}
-        />
+        <CardElement options={{ style: { base: { fontSize: '14px', color: '#fff', fontFamily: 'inherit', '::placeholder': { color: '#6b7280' } }, invalid: { color: '#ef4444' } } }} />
       </div>
       {error && <p className="text-red-400 text-xs">{error}</p>}
-      <button
-        onClick={handleSubmit}
-        disabled={loading || !stripe}
-        className="w-full py-3 rounded-lg text-sm font-bold transition-all disabled:opacity-50"
-        style={{ background: '#A855F7', color: 'white' }}
-        onMouseEnter={e => { if (!loading) e.currentTarget.style.background = '#9333ea' }}
-        onMouseLeave={e => { e.currentTarget.style.background = '#A855F7' }}
-      >
+      <button onClick={handleSubmit} disabled={loading || !stripe}
+        className="w-full py-3 rounded-lg text-sm font-bold disabled:opacity-50"
+        style={{ background: '#A855F7', color: 'white' }}>
         {loading ? 'Agregando...' : 'Agregar tarjeta'}
       </button>
-      <button
-        onClick={onCancel}
-        className="text-xs py-2 transition-colors hover:text-white"
-        style={{ color: '#a7a7a7', background: 'transparent' }}
-      >
+      <button onClick={onCancel} className="text-xs py-2 text-muted hover:text-white transition-colors" style={{ background: 'transparent' }}>
         Cancelar
       </button>
     </div>
@@ -87,230 +51,143 @@ function FormularioTarjeta({
 }
 
 // ── UpgradeModal ──────────────────────────────────────────────────────────────
-export default function UpgradeModal({ show, onClose, onSuccess, userId }: Props) {
-  const [step, setStep]                         = useState<ModalStep>('planes')
-  const [planes, setPlanes]                     = useState<Plan[]>([])
-  const [tarjetas, setTarjetas]                 = useState<Tarjeta[]>([])
-  const [planSeleccionado, setPlanSeleccionado] = useState<Plan | null>(null)
-  const [loadingPlanes, setLoadingPlanes]       = useState(false)
-  const [loadingTarjetas, setLoadingTarjetas]   = useState(false)
-  const [loadingPago, setLoadingPago]           = useState(false)
+export default function UpgradeModal({ show, onClose, onSuccess }: Props) {
+  const [step, setStep]                         = useState<Step>('plans')
+  const [plans, setPlans]                       = useState<CreditPlan[]>([])
+  const [methods, setMethods]                   = useState<PaymentMethod[]>([])
+  const [selectedPlan, setSelectedPlan]         = useState<CreditPlan | null>(null)
+  const [loadingPlans, setLoadingPlans]         = useState(false)
+  const [loadingMethods, setLoadingMethods]     = useState(false)
+  const [loadingPayment, setLoadingPayment]     = useState(false)
   const [errorMsg, setErrorMsg]                 = useState('')
 
-  const brandIcon: Record<string, string> = { visa: '💳', mastercard: '💳', amex: '💳' }
-
-  async function handleOpen() {
-    if (planes.length === 0) {
-      setLoadingPlanes(true)
-      try {
-        const data = await clientService.getPlanes()
-        setPlanes(data)
-      } finally {
-        setLoadingPlanes(false)
-      }
-    }
+  if (show && plans.length === 0 && !loadingPlans) {
+    setLoadingPlans(true)
+    clientService.getPlans().then(setPlans).finally(() => setLoadingPlans(false))
   }
 
-  // Se llama cuando el modal se monta (show cambia a true)
-  if (show && planes.length === 0 && !loadingPlanes) {
-    handleOpen()
+  async function handleSelectPlan(plan: CreditPlan) {
+    setSelectedPlan(plan)
+    setStep('payment-methods')
+    setLoadingMethods(true)
+    try { setMethods(await clientService.getPaymentMethods()) }
+    catch { setMethods([]) }
+    finally { setLoadingMethods(false) }
   }
 
-  async function handleSeleccionarPro(plan: Plan) {
-    setPlanSeleccionado(plan)
-    setStep('tarjetas')
-    setLoadingTarjetas(true)
+  async function handleCardAdded(pmId: string) {
+    setLoadingMethods(true)
     try {
-      const data = await clientService.getTarjetas(userId)
-      setTarjetas(data)
-    } catch {
-      setTarjetas([])
-    } finally {
-      setLoadingTarjetas(false)
-    }
-  }
-
-  async function handleTarjetaAgregada(pmId: string) {
-    setLoadingTarjetas(true)
-    try {
-      await clientService.crearTarjeta(userId, pmId)
-      const actualizadas = await clientService.getTarjetas(userId)
-      setTarjetas(actualizadas)
-      setStep('tarjetas')
-    } catch (e: any) {
-      setErrorMsg(e?.response?.data?.message || e?.response?.data?.error || e?.message || 'No se pudo agregar la tarjeta.')
+      await clientService.savePaymentMethod(pmId)
+      setMethods(await clientService.getPaymentMethods())
+      setStep('payment-methods')
+    } catch (e: unknown) {
+      setErrorMsg((e as { message?: string })?.message ?? 'No se pudo agregar la tarjeta.')
       setStep('error')
-    } finally {
-      setLoadingTarjetas(false)
-    }
+    } finally { setLoadingMethods(false) }
   }
 
-  async function handlePagar(tarjeta: Tarjeta) {
-    if (!planSeleccionado) return
-    setStep('confirmando')
-    setLoadingPago(true)
+  async function handlePay(pm: PaymentMethod) {
+    if (!selectedPlan) return
+    setStep('processing')
+    setLoadingPayment(true)
     try {
-      await clientService.realizarPago(userId, tarjeta.stripePaymentMethodId, planSeleccionado.precio)
-      onSuccess()
-      setStep('exito')
-    } catch (e: any) {
-      setErrorMsg(e?.response?.data?.message || e?.response?.data?.error || e?.message || 'Error al procesar el pago.')
+      await clientService.makePayment(pm.stripe_payment_method_id, parseFloat(selectedPlan.price_usd), selectedPlan.slug)
+      onSuccess(selectedPlan.name.toUpperCase())
+      setStep('success')
+    } catch (e: unknown) {
+      setErrorMsg((e as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Error al procesar el pago.')
       setStep('error')
-    } finally {
-      setLoadingPago(false)
-    }
+    } finally { setLoadingPayment(false) }
   }
 
-  function handleCerrar() {
+  function handleClose() {
     onClose()
-    setStep('planes')
-    setPlanSeleccionado(null)
+    setStep('plans')
+    setSelectedPlan(null)
     setErrorMsg('')
   }
 
   if (!show) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)' }}
-      onClick={handleCerrar}
-    >
-      <div
-        className="rounded-2xl p-8 w-full max-w-2xl"
-        style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* STEP: PLANES */}
-        {step === 'planes' && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" style={{ background: 'rgba(0,0,0,0.8)' }} onClick={handleClose}>
+      <div className="rounded-2xl p-5 sm:p-6 w-full max-w-3xl max-h-[92vh] overflow-y-auto" style={{ background: '#1a1a1a', border: '1px solid #2a2a2a' }} onClick={e => e.stopPropagation()}>
+
+        {/* ── PLANES ── */}
+        {step === 'plans' && (
           <>
             <h2 className="text-white text-2xl font-black text-center mb-2">Elige tu plan</h2>
-            <p className="text-center text-xs mb-8" style={{ color: '#a7a7a7' }}>
-              Desbloquea todo el potencial de MusicGen
-            </p>
-            {loadingPlanes ? (
+            <p className="text-center text-xs mb-8 text-muted">Desbloquea todo el potencial de MusicGen</p>
+            {loadingPlans ? (
               <p className="text-center text-muted text-sm">Cargando planes...</p>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {planes.map(plan => {
-                  const isPro = plan.nombre === 'pro'
+              <div className="grid grid-cols-3 gap-3">
+                {plans.map(plan => {
+                  const isPaid = plan.slug === 'pro' || plan.slug === 'studio'
                   return (
-                    <div key={plan.id} className="rounded-xl p-6 flex flex-col gap-3 relative"
-                      style={{
-                        background: isPro ? 'linear-gradient(135deg, #2d1b69 0%, #1a1040 100%)' : '#121212',
-                        border: isPro ? '1px solid #A855F7' : '1px solid #2a2a2a',
-                      }}>
-                      {isPro && (
-                        <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                          style={{ background: '#A855F7', color: 'white' }}>POPULAR</span>
-                      )}
+                    <div key={plan.id} className="rounded-xl p-4 flex flex-col gap-2.5 relative"
+                      style={{ background: isPaid ? 'linear-gradient(135deg,#2d1b69 0%,#1a1040 100%)' : '#121212', border: isPaid ? '1px solid #A855F7' : '1px solid #2a2a2a' }}>
+                      {isPaid && <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#A855F7', color: 'white' }}>POPULAR</span>}
                       <div>
-                        <h3 className="text-white font-black text-lg capitalize">{plan.nombre}</h3>
+                        <h3 className="text-white font-black text-base">{plan.name}</h3>
                         <div className="flex items-end gap-1 mt-1">
-                          <span className="text-white text-3xl font-black">${plan.precio}</span>
-                          <span className="text-muted text-xs mb-1">/mes</span>
+                          <span className="text-white text-2xl font-black">${plan.price_usd}</span>
+                          <span className="text-muted text-xs mb-0.5">/mes</span>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2 flex-1">
-                        {isPro ? (
-                          <>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#a7a7a7' }}><span style={{ color: '#A855F7' }}>✓</span> Créditos ilimitados</p>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#a7a7a7' }}><span style={{ color: '#A855F7' }}>✓</span> Acceso a todas las funciones</p>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#a7a7a7' }}><span style={{ color: '#A855F7' }}>✓</span> Calidad de audio premium</p>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#a7a7a7' }}><span style={{ color: '#A855F7' }}>✓</span> Soporte prioritario</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#a7a7a7' }}><span style={{ color: '#A855F7' }}>✓</span> {plan.creditoPorMes} créditos/mes</p>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#a7a7a7' }}><span style={{ color: '#A855F7' }}>✓</span> Funciones básicas</p>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#6b7280' }}><span>✗</span> Funciones avanzadas</p>
-                            <p className="text-xs flex items-center gap-2" style={{ color: '#6b7280' }}><span>✗</span> Soporte prioritario</p>
-                          </>
-                        )}
+                      <div className="flex flex-col gap-1.5 flex-1 text-xs text-muted">
+                        <p><span className="text-primary">✓</span> {plan.credits_per_month} créditos/mes</p>
+                        {plan.features.map((f, i) => <p key={i}><span className="text-primary">✓</span> {f}</p>)}
                       </div>
                       <button
-                        onClick={() => isPro ? handleSeleccionarPro(plan) : undefined}
-                        className="mt-2 w-full py-2.5 rounded-lg text-xs font-bold transition-all duration-150"
-                        style={{
-                          background: isPro ? '#A855F7' : '#2a2a2a',
-                          color: isPro ? 'white' : '#a7a7a7',
-                          cursor: isPro ? 'pointer' : 'default',
-                        }}
-                        onMouseEnter={e => { if (isPro) e.currentTarget.style.background = '#9333ea' }}
-                        onMouseLeave={e => { if (isPro) e.currentTarget.style.background = '#A855F7' }}
-                      >
-                        {isPro ? 'Suscribirse a Pro' : 'Plan actual'}
+                        onClick={() => isPaid ? handleSelectPlan(plan) : undefined}
+                        disabled={!isPaid}
+                        className="mt-2 w-full py-2.5 rounded-lg text-xs font-bold transition-all"
+                        style={{ background: isPaid ? '#A855F7' : '#2a2a2a', color: isPaid ? 'white' : '#6b7280', cursor: isPaid ? 'pointer' : 'default' }}>
+                        {isPaid ? `Suscribirse a ${plan.name}` : 'Plan actual'}
                       </button>
                     </div>
                   )
                 })}
               </div>
             )}
-            <button onClick={handleCerrar} className="mt-6 w-full text-xs py-2 rounded-lg"
-              style={{ color: '#a7a7a7', background: 'transparent' }}>
-              Cerrar
-            </button>
+            <button onClick={handleClose} className="mt-6 w-full text-xs py-2 rounded-lg text-muted" style={{ background: 'transparent' }}>Cerrar</button>
           </>
         )}
 
-        {/* STEP: TARJETAS */}
-        {step === 'tarjetas' && (
+        {/* ── MÉTODOS DE PAGO ── */}
+        {step === 'payment-methods' && (
           <>
-            <button onClick={() => setStep('planes')} className="text-muted text-xs mb-4 flex items-center gap-1 hover:text-white transition-colors">
-              ← Volver
-            </button>
+            <button onClick={() => setStep('plans')} className="text-muted text-xs mb-4 flex items-center gap-1 hover:text-white transition-colors">← Volver</button>
             <h2 className="text-white text-xl font-black mb-1">Selecciona una tarjeta</h2>
-            <p className="text-xs mb-6" style={{ color: '#a7a7a7' }}>
-              Plan Pro — <span className="text-white font-bold">${planSeleccionado?.precio}/mes</span>
-            </p>
-            {loadingTarjetas ? (
+            <p className="text-xs mb-6 text-muted">{selectedPlan?.name} — <span className="text-white font-bold">${selectedPlan?.price_usd}/mes</span></p>
+            {loadingMethods ? (
               <p className="text-center text-muted text-sm">Cargando tarjetas...</p>
-            ) : tarjetas.length === 0 ? (
+            ) : methods.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted text-sm mb-4">No tienes tarjetas guardadas</p>
-                <button
-                  onClick={() => setStep('nueva-tarjeta')}
-                  className="px-6 py-2.5 rounded-lg text-sm font-bold"
-                  style={{ background: '#A855F7', color: 'white' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#9333ea')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '#A855F7')}
-                >
-                  + Agregar tarjeta
-                </button>
+                <p className="text-muted text-sm mb-4">No tenés tarjetas guardadas</p>
+                <button onClick={() => setStep('new-card')} className="px-6 py-2.5 rounded-lg text-sm font-bold" style={{ background: '#A855F7', color: 'white' }}>+ Agregar tarjeta</button>
               </div>
             ) : (
               <>
                 <div className="flex flex-col gap-3 mb-4">
-                  {tarjetas.map(tarjeta => (
-                    <div key={tarjeta.id}
-                      className="flex items-center justify-between rounded-xl px-5 py-4"
-                      style={{ background: '#121212', border: '1px solid #2a2a2a' }}>
+                  {methods.map(pm => (
+                    <div key={pm.id} className="flex items-center justify-between rounded-xl px-5 py-4" style={{ background: '#121212', border: '1px solid #2a2a2a' }}>
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{brandIcon[tarjeta.brand?.toLowerCase()] ?? '💳'}</span>
+                        <span className="text-2xl">💳</span>
                         <div>
-                          <p className="text-white text-sm font-bold capitalize">{tarjeta.brand} •••• {tarjeta.last4}</p>
-                          <p className="text-xs" style={{ color: '#a7a7a7' }}>Vence {tarjeta.expMonth}/{tarjeta.expYear}</p>
+                          <p className="text-white text-sm font-bold capitalize">{pm.brand} •••• {pm.last4}</p>
+                          <p className="text-xs text-muted">Vence {pm.exp_month}/{pm.exp_year}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handlePagar(tarjeta)}
-                        className="px-4 py-2 rounded-lg text-xs font-bold transition-all"
-                        style={{ background: '#A855F7', color: 'white' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#9333ea')}
-                        onMouseLeave={e => (e.currentTarget.style.background = '#A855F7')}
-                      >
+                      <button onClick={() => handlePay(pm)} className="px-4 py-2 rounded-lg text-xs font-bold" style={{ background: '#A855F7', color: 'white' }}>
                         Pagar
                       </button>
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={() => setStep('nueva-tarjeta')}
-                  className="w-full py-2.5 rounded-lg text-xs font-bold transition-all"
-                  style={{ background: 'transparent', border: '1px solid #2a2a2a', color: '#a7a7a7' }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#A855F7')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#2a2a2a')}
-                >
+                <button onClick={() => setStep('new-card')} className="w-full py-2.5 rounded-lg text-xs font-bold" style={{ background: 'transparent', border: '1px solid #2a2a2a', color: '#a7a7a7' }}>
                   + Agregar nueva tarjeta
                 </button>
               </>
@@ -318,83 +195,50 @@ export default function UpgradeModal({ show, onClose, onSuccess, userId }: Props
           </>
         )}
 
-        {/* STEP: NUEVA TARJETA */}
-        {step === 'nueva-tarjeta' && (
+        {/* ── NUEVA TARJETA ── */}
+        {step === 'new-card' && (
           <>
-            <button onClick={() => setStep('tarjetas')} className="text-muted text-xs mb-4 flex items-center gap-1 hover:text-white transition-colors">
-              ← Volver
-            </button>
+            <button onClick={() => setStep('payment-methods')} className="text-muted text-xs mb-4 flex items-center gap-1 hover:text-white transition-colors">← Volver</button>
             <h2 className="text-white text-xl font-black mb-2">Agregar tarjeta</h2>
-            <p className="text-xs mb-6" style={{ color: '#a7a7a7' }}>
-              Tus datos están protegidos por Stripe. No almacenamos información de tu tarjeta.
-            </p>
+            <p className="text-xs mb-6 text-muted">Tus datos están protegidos por Stripe.</p>
             <Elements stripe={stripePromise}>
-              <FormularioTarjeta
-                onSuccess={handleTarjetaAgregada}
-                onCancel={() => setStep('tarjetas')}
-              />
+              <CardForm onSuccess={handleCardAdded} onCancel={() => setStep('payment-methods')} />
             </Elements>
           </>
         )}
 
-        {/* STEP: CONFIRMANDO */}
-        {step === 'confirmando' && (
+        {/* ── PROCESANDO ── */}
+        {step === 'processing' && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <div className="w-12 h-12 rounded-full border-4 animate-spin"
-              style={{ borderColor: '#A855F7', borderTopColor: 'transparent' }} />
+            <div className="w-12 h-12 rounded-full border-4 animate-spin" style={{ borderColor: '#A855F7', borderTopColor: 'transparent' }} />
             <p className="text-white font-bold">Procesando pago...</p>
-            <p className="text-xs" style={{ color: '#a7a7a7' }}>No cierres esta ventana</p>
+            <p className="text-xs text-muted">No cierres esta ventana</p>
           </div>
         )}
 
-        {/* STEP: EXITO */}
-        {step === 'exito' && (
+        {/* ── ÉXITO ── */}
+        {step === 'success' && (
           <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl text-white"
-              style={{ background: 'linear-gradient(135deg, #A855F7 0%, #7C3AED 100%)' }}>
-              ✓
-            </div>
-            <h2 className="text-white text-2xl font-black">¡Bienvenido a Pro!</h2>
-            <p className="text-xs" style={{ color: '#a7a7a7' }}>Tu suscripción está activa. Disfruta de todas las funciones.</p>
-            <button
-              onClick={handleCerrar}
-              className="mt-4 px-8 py-3 rounded-lg text-sm font-bold"
-              style={{ background: '#A855F7', color: 'white' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#9333ea')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#A855F7')}
-            >
-              Continuar
-            </button>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl text-white" style={{ background: 'linear-gradient(135deg,#A855F7 0%,#7C3AED 100%)' }}>✓</div>
+            <h2 className="text-white text-2xl font-black">¡Pago exitoso!</h2>
+            <p className="text-xs text-muted">Tu suscripción está activa.</p>
+            <button onClick={handleClose} className="mt-4 px-8 py-3 rounded-lg text-sm font-bold" style={{ background: '#A855F7', color: 'white' }}>Continuar</button>
           </div>
         )}
 
-        {/* STEP: ERROR */}
-        {step === 'error' && (
+        {/* ── ERROR ── */}
+        {step === 'error' && !loadingPayment && (
           <div className="flex flex-col items-center justify-center py-12 gap-4 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
-              style={{ background: '#2a2a2a', color: '#ef4444' }}>
-              ✗
-            </div>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl" style={{ background: '#2a2a2a', color: '#ef4444' }}>✗</div>
             <h2 className="text-white text-xl font-black">Error en el pago</h2>
-            <p className="text-xs" style={{ color: '#a7a7a7' }}>{errorMsg}</p>
+            <p className="text-xs text-muted">{errorMsg}</p>
             <div className="flex gap-3 mt-4">
-              <button onClick={() => setStep('tarjetas')}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold"
-                style={{ background: '#A855F7', color: 'white' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#9333ea')}
-                onMouseLeave={e => (e.currentTarget.style.background = '#A855F7')}
-              >
-                Intentar de nuevo
-              </button>
-              <button onClick={handleCerrar}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold"
-                style={{ background: '#2a2a2a', color: '#a7a7a7' }}
-              >
-                Cancelar
-              </button>
+              <button onClick={() => setStep('payment-methods')} className="px-6 py-2.5 rounded-lg text-sm font-bold" style={{ background: '#A855F7', color: 'white' }}>Intentar de nuevo</button>
+              <button onClick={handleClose} className="px-6 py-2.5 rounded-lg text-sm font-bold" style={{ background: '#2a2a2a', color: '#a7a7a7' }}>Cancelar</button>
             </div>
           </div>
         )}
+
       </div>
     </div>
   )
