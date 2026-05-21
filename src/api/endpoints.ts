@@ -8,12 +8,12 @@ export const ENDPOINTS = {
     changePassword: '/auth/change-password/',
   },
   songs: {
-    generate:     '/songs/generate/',
-    jobs:         (id: string) => `/songs/jobs/${id}/`,
-    library:      '/songs/library/',
+    generate:      '/songs/generate/',
+    job:           (jobId: string)    => `/songs/jobs/${jobId}/`,
+    playUrl:       (songId: string)   => `/songs/${songId}/play-url/`,
+    thumbnailUrl:  (songId: string)   => `/songs/${songId}/thumbnail-url/`,
+    library:       '/songs/library/',
     detail:       (id: string) => `/songs/${id}/`,
-    playUrl:      (id: string) => `/songs/${id}/play-url/`,
-    thumbnailUrl: (id: string) => `/songs/${id}/thumbnail-url/`,
     update:       (id: string) => `/songs/${id}/`,
     delete:       (id: string) => `/songs/${id}/`,
     like:         (id: string) => `/songs/${id}/like/`,
@@ -38,4 +38,5 @@ export const ENDPOINTS = {
     feed:     '/community/feed/',
     plays:    '/community/plays/',
   },
+
 } as const
