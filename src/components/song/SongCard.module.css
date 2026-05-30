@@ -1,0 +1,247 @@
+/* src/components/song/SongCard.module.css */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.3, 0, 0, 1);
+}
+
+.card:hover {
+  border-color: #2d2d2d;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Cover ─────────────────────────────────────────────────── */
+
+.coverWrapper {
+  position: relative;
+  height: 220px;
+  overflow: hidden;
+  background: var(--bg-card-hover);
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.3, 0, 0, 1);
+}
+
+.card:hover .cover {
+  transform: scale(1.05);
+}
+
+/* Skeleton shimmer */
+.coverSkeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #1f1f1f 25%, #2a2a2a 50%, #1f1f1f 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Placeholder cuando no hay imagen */
+.coverPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card-hover);
+  color: var(--text-subdued);
+}
+
+/* Overlay degradado permanente (como en CommunityPage) */
+.coverOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.85) 0%,
+    rgba(0, 0, 0, 0.2) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Título + tags encima de la imagen, en la zona oscura inferior */
+.coverMeta {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 56px; /* deja espacio al play button */
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coverTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.5);
+}
+
+.coverTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.coverTagBadge {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 2px 9px;
+  border-radius: 500px;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+/* ── Play button (estilo Community: blanco, siempre en esquina) ── */
+
+.playBtn {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 500px;
+  border: none;
+  background: #ffffff;
+  color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s cubic-bezier(0.3, 0, 0, 1),
+              transform 0.2s cubic-bezier(0.3, 0, 0, 1),
+              scale 0.15s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.card:hover .playBtn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.playBtn:hover {
+  scale: 1.07;
+}
+
+/* ── Content (debajo de la imagen) ───────────────────────────── */
+
+.content {
+  padding: 14px 16px 16px;
+}
+
+/* Fila fecha + duración */
+.subRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.date {
+  font-size: 12px;
+  color: var(--text-subdued);
+}
+
+.duration {
+  font-size: 12px;
+  color: var(--text-subdued);
+  background: var(--bg-card-hover);
+  padding: 3px 10px;
+  border-radius: 500px;
+  white-space: nowrap;
+}
+
+/* ── Description ─────────────────────────────────────────────── */
+
+.description {
+  font-size: 13px;
+  color: var(--text-subdued);
+  line-height: 1.5;
+  margin: 0 0 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Actions ─────────────────────────────────────────────────── */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-subdued);
+  background: none;
+  border: none;
+  border-radius: 500px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.actionBtn:hover {
+  color: var(--text-base);
+  background: var(--bg-card-hover);
+}
+
+.actionBtn.liked {
+  color: #f87171;
+}
+
+.actionBtnPlay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #000;
+  background: #ffffff;
+  border: none;
+  border-radius: 500px;
+  padding: 7px 18px;
+  cursor: pointer;
+  margin-left: auto;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.actionBtnPlay:hover {
+  background: #e5e5e5;
+  transform: scale(1.02);
+}

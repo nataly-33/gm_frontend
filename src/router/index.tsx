@@ -13,6 +13,8 @@ import AdminProfilePage from '../pages/admin/AdminProfilePage'
 import ClienteProfilePage from '../pages/cliente/ClienteProfilePage'
 import PaymentsPage from '../pages/cliente/Paymentspage'
 import CommunityPage from '../pages/cliente/CommunityPage'
+import LibraryPage from '../pages/library/LibraryPage'
+import CreatePage from '../pages/create/CreatePage'
 
 const placeholder = (label: string) => (
   <div style={{ padding: '32px', color: 'var(--text-base)' }}>
@@ -41,8 +43,8 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/',          element: placeholder('Inicio') },
-          { path: '/library',   element: placeholder('Tu biblioteca') },
-          { path: '/create',    element: placeholder('Crear canción') },
+          { path: '/library',   element: <LibraryPage /> },
+          { path: '/create',    element:  <CreatePage /> },
           { path: '/community', element: <CommunityPage /> },
           { path: '/profile',   element: <ClienteProfilePage /> },
           { path: '/payments',  element: <PaymentsPage /> },
