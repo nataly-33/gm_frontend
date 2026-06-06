@@ -38,5 +38,30 @@ export const ENDPOINTS = {
     feed:     '/community/feed/',
     plays:    '/community/plays/',
   },
-
+  stems: {
+    separate: '/stems/separate/',
+    jobs: '/stems/jobs/',
+    jobStatus: (jobId: string) => `/stems/jobs/${jobId}/`,
+    downloadUrl: (fileId: string) => `/stems/files/${fileId}/download-url/`,
+  },
+  recommendations: {
+    forYou:        '/recommendations/for-you/',
+    suggestedTags: '/recommendations/suggested-tags/',
+  },
+  playlists: {
+    list:         '/playlists/',
+    detail:       (id: string) => `/playlists/${id}/`,
+    songs:        (id: string) => `/playlists/${id}/songs/`,
+    songRemove:   (id: string, songId: string) => `/playlists/${id}/songs/${songId}/`,
+    share:        (id: string) => `/playlists/${id}/share/`,
+    public:       (token: string) => `/playlists/public/${token}/`,
+    auto:         '/playlists/auto/',
+    autoGenerate: '/playlists/auto/generate/',
+  },
+  reports: {
+    usage:     '/reports/usage/',
+    topSongs:  '/reports/top-songs/',
+    auditLogs: '/reports/audit-logs/',
+    users:     '/reports/users/',
+  },
 } as const
