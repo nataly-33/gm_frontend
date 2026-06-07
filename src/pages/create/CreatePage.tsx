@@ -3,7 +3,6 @@
 // Formulario de generación con 3 modos, selector de duración y polling.
 // El payload enviado al backend contiene ÚNICAMENTE las llaves del modo activo.
 // ─────────────────────────────────────────────────────────────────────────────
-
 import { useEffect, useRef, useState } from 'react'
 import {
   generateSong,
@@ -13,6 +12,8 @@ import {
 } from '../../api/modules/songs.api'
 import type { JobStatus } from '../../api/modules/songs.api'
 import styles from './CreatePage.module.css'
+import { isAxiosError } from 'axios'
+import { useAuthStore } from '../../store/auth.store'
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -61,7 +62,7 @@ const STAGE_LABELS: Record<GenerationStage, string> = {
   idle:       '',
   submitting: 'Enviando tu solicitud...',
   polling:    'Generando tu canción… esto puede tardar un minuto 🎶',
-  ready:      '¡Lista! 🎉',
+  ready:      '¡Lista!',
   no_credits: 'Créditos insuficientes',
   error:      'Ocurrió un error',
 }
@@ -189,6 +190,13 @@ export default function CreatePage() {
       const payload = buildPayload()
       const res = await generateSong(payload as Parameters<typeof generateSong>[0])
 
+      // Actualizar perfil de usuario para reflejar el crédito restado
+      import('../../api/authService').then(({ authService }) => {
+        authService.getProfile().then(profile => {
+          useAuthStore.getState().setUser(profile)
+        }).catch(console.error)
+      })
+
       // Primer check inmediato (entorno dev con Celery eager)
       const firstCheck = await getSongJob(res.job_id)
       if (firstCheck.status === 'ready') {
@@ -228,13 +236,21 @@ export default function CreatePage() {
 
   const isBusy = stage === 'submitting' || stage === 'polling'
 
+  const { user } = useAuthStore()
+
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
 
         {/* ── Header ──────────────────────────────────────────── */}
         <div className={styles.header}>
-          <h1 className={styles.pageTitle}>Crear canción</h1>
+          <div className="flex justify-between items-center w-full">
+            <h1 className={styles.pageTitle}>Crear canción</h1>
+            <div className="text-right">
+              <span className="text-sm font-bold text-muted uppercase tracking-wider block">Créditos disponibles</span>
+              <span className="text-primary text-xl font-black">{user?.credit_balance ?? 0}</span>
+            </div>
+          </div>
           <p className={styles.pageSubtitle}>
             Elige un modo, rellena los campos y deja que la IA haga el resto.
           </p>
@@ -454,8 +470,4 @@ export default function CreatePage() {
       </div>
     </div>
   )
-}
-
-function isAxiosError(err: unknown): err is { response?: { status: number } } {
-  return typeof err === 'object' && err !== null && 'response' in err
 }
