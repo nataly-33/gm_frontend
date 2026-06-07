@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { clientService, type CreditPlan, type PaymentMethod } from '../api/client.service'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { useAuthStore } from '../store/auth.store'
+import { authService } from '../api/authService'
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY ?? '')
 
@@ -75,6 +77,8 @@ export default function UpgradeModal({ show, onClose, onSuccess }: Props) {
     finally { setLoadingMethods(false) }
   }
 
+  const { setUser } = useAuthStore()
+
   async function handleCardAdded(pmId: string) {
     setLoadingMethods(true)
     try {
@@ -93,6 +97,8 @@ export default function UpgradeModal({ show, onClose, onSuccess }: Props) {
     setLoadingPayment(true)
     try {
       await clientService.makePayment(pm.stripe_payment_method_id, parseFloat(selectedPlan.price_usd), selectedPlan.slug)
+      const profile = await authService.getProfile()
+      setUser(profile)
       onSuccess(selectedPlan.name.toUpperCase())
       setStep('success')
     } catch (e: unknown) {
