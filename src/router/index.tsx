@@ -21,6 +21,8 @@ import StemsPage from '../pages/stems/StemsPage'
 import ForYouPage from '../pages/recommendations/ForYouPage'
 import PlaylistsPage from '../pages/playlists/PlaylistsPage'
 import PlaylistDetailPage from '../pages/playlists/PlaylistDetailPage'
+import MixPage from '../pages/mix/MixPage'
+import MixEditorPage from '../pages/mix/MixEditorPage'
 
 const placeholder = (label: string) => (
   <div style={{ padding: '32px', color: 'var(--text-base)' }}>
@@ -58,6 +60,8 @@ export const router = createBrowserRouter([
           { path: '/playlists/:id',  element: <PlaylistDetailPage /> },
           { path: '/profile',        element: <ClienteProfilePage /> },
           { path: '/payments',       element: <PaymentsPage /> },
+          { path: '/mix',            element: <MixPage /> },
+          { path: '/mix/:id',        element: <MixEditorPage /> },
         ],
       },
 

@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/auth.store'
 import { ENDPOINTS } from '../api/endpoints'
 import client from '../api/client'
 import UpgradeModal from './UpgradeModal'
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from '../api/modules/notifications.api'
+import type { Notification } from '../api/modules/notifications.api'
 
 const NAV_ITEMS = [
   {
@@ -70,11 +72,11 @@ const NAV_ITEMS = [
     ),
   },
   {
-    to: '/profile',
-    label: 'Perfil',
+    to: '/mix',
+    label: 'Mix DJ',
     icon: (
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+        <path d="M3 9h2v6H3V9zm4-2h2v10H7V7zm4-4h2v18h-2V3zm4 4h2v10h-2V7zm4 2h2v6h-2V9z" />
       </svg>
     ),
   },
@@ -87,6 +89,15 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+    {
+    to: '/profile',
+    label: 'Perfil',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
+    ),
+  }
 ]
 
 interface Suscripcion {
@@ -102,6 +113,10 @@ export default function AppLayout() {
   const [planBadge,     setPlanBadge]    = useState<string | null>(null)
   const [checkingPlan, setCheckingPlan] = useState(true)
   const [showModal, setShowModal]       = useState(false)
+  const [notifs, setNotifs]             = useState<Notification[]>([])
+  const [unread, setUnread]             = useState(0)
+  const [showNotifs, setShowNotifs]     = useState(false)
+  const notifRef                        = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!user?.id) {
@@ -116,6 +131,8 @@ export default function AppLayout() {
       .catch((err) => {
         console.error("Error al sincronizar perfil:", err)
       })
+
+    getNotifications().then(r => { setNotifs(r.results); setUnread(r.unread_count) }).catch(() => {})
 
     client.get(ENDPOINTS.credits.subscriptions)
       .then(({ data }: { data: Suscripcion[] }) => {
@@ -204,6 +221,82 @@ export default function AppLayout() {
               </button>
             )}
           </div>
+          {/* Notification bell */}
+          <div ref={notifRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowNotifs(v => !v)}
+              style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-subdued)', display: 'flex', alignItems: 'center', padding: 6, borderRadius: 6 }}
+              title="Notificaciones"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" />
+              </svg>
+              {unread > 0 && (
+                <span style={{
+                  position: 'absolute', top: 2, right: 2,
+                  width: 16, height: 16, borderRadius: '50%',
+                  background: '#A855F7', color: 'white',
+                  fontSize: 10, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+            </button>
+
+            {showNotifs && (
+              <div style={{
+                position: 'absolute', top: '110%', right: 0, width: 320,
+                background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                zIndex: 100, overflow: 'hidden',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-base)' }}>Notificaciones</span>
+                  {unread > 0 && (
+                    <button
+                      onClick={() => markAllNotificationsRead().then(() => { setUnread(0); setNotifs(prev => prev.map(n => ({ ...n, is_read: true }))) }).catch(() => {})}
+                      style={{ fontSize: 11, color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                      Marcar todas leídas
+                    </button>
+                  )}
+                </div>
+                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                  {notifs.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-subdued)', fontSize: 13 }}>Sin notificaciones</div>
+                  ) : notifs.map(n => (
+                    <div
+                      key={n.id}
+                      onClick={() => {
+                        if (!n.is_read) {
+                          markNotificationRead(n.id).catch(() => {})
+                          setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x))
+                          setUnread(prev => Math.max(0, prev - 1))
+                        }
+                        setShowNotifs(false)
+                      }}
+                      style={{
+                        padding: '12px 16px', cursor: 'pointer',
+                        background: n.is_read ? 'transparent' : 'rgba(168,85,247,0.06)',
+                        borderBottom: '1px solid var(--border)',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-card-hover)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.background = n.is_read ? 'transparent' : 'rgba(168,85,247,0.06)'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: n.is_read ? 400 : 600, color: 'var(--text-base)' }}>{n.title}</p>
+                        {!n.is_read && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#A855F7', flexShrink: 0, marginTop: 3 }} />}
+                      </div>
+                      {n.message && <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subdued)' }}>{n.message}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="h-6 w-px bg-card-hover" />
           <div className="flex items-center gap-2.5 mr-2">
             <div

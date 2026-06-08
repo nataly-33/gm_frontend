@@ -34,9 +34,16 @@ export const ENDPOINTS = {
     stripePriceDetail:   (id: string) => `/credits/stripe/prices/${id}/`,
   },
   community: {
-    trending: '/community/trending/',
     feed:     '/community/feed/',
-    plays:    '/community/plays/',
+    trending: '/community/trending/',
+    stats:    '/community/stats/',
+    like:     (id: string) => `/community/songs/${id}/like/`,
+    play:     (id: string) => `/community/songs/${id}/play/`,
+  },
+  notifications: {
+    list:       '/notifications/',
+    markRead:   (id: number) => `/notifications/${id}/read/`,
+    markAllRead:'/notifications/read-all/',
   },
   stems: {
     separate: '/stems/separate/',
@@ -63,5 +70,14 @@ export const ENDPOINTS = {
     topSongs:  '/reports/top-songs/',
     auditLogs: '/reports/audit-logs/',
     users:     '/reports/users/',
+  },
+  mix: {
+    projects:    '/mix/projects/',
+    project:     (id: string) => `/mix/projects/${id}/`,
+    clips:       (mixId: string) => `/mix/projects/${mixId}/clips/`,
+    clip:        (mixId: string, clipId: string) => `/mix/projects/${mixId}/clips/${clipId}/`,
+    reorder:     (mixId: string) => `/mix/projects/${mixId}/reorder/`,
+    export:      (mixId: string) => `/mix/projects/${mixId}/export/`,
+    exportStatus:(exportId: string) => `/mix/exports/${exportId}/`,
   },
 } as const
