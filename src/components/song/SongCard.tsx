@@ -13,6 +13,8 @@ interface SongCardProps {
   song: LibrarySong
   onPlay?: (song: LibrarySong) => void
   onLike?: (songId: string) => void
+  onDelete?: (songId: string) => void
+  onPublish?: (songId: string, isPublic: boolean) => void
 }
 
 function formatDuration(seconds?: number): string {
@@ -38,7 +40,7 @@ function CoverPlaceholder() {
   )
 }
 
-export default function SongCard({ song, onPlay, onLike }: SongCardProps) {
+export default function SongCard({ song, onPlay, onLike, onDelete, onPublish }: SongCardProps) {
   const [liked, setLiked] = useState(false)
 
   type CoverState = 'loading' | 'loaded' | 'error'
@@ -122,7 +124,28 @@ export default function SongCard({ song, onPlay, onLike }: SongCardProps) {
 
         <div className={styles.subRow}>
           <span className={styles.date}>{formatDate(song.created_at)}</span>
-          <span className={styles.duration}>{formatDuration(song.audio_duration)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+            {onPublish && (
+              <button
+                className={`${styles.publishChip} ${song.is_public ? styles.publishChipActive : ''}`}
+                onClick={() => onPublish(song.id, !song.is_public)}
+                aria-label={song.is_public ? 'Despublicar' : 'Publicar'}
+              >
+                {song.is_public ? (
+                  <>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" /></svg>
+                    Publicada
+                  </>
+                ) : (
+                  <>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" /></svg>
+                    Publicar
+                  </>
+                )}
+              </button>
+            )}
+            <span className={styles.duration}>{formatDuration(song.audio_duration)}</span>
+          </div>
         </div>
 
         {song.description && (
@@ -143,7 +166,6 @@ export default function SongCard({ song, onPlay, onLike }: SongCardProps) {
             >
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
-            Me gusta
           </button>
 
           <button
@@ -155,6 +177,23 @@ export default function SongCard({ song, onPlay, onLike }: SongCardProps) {
             </svg>
             Reproducir
           </button>
+
+          {onDelete && (
+            <button
+              className={styles.actionBtnDelete}
+              onClick={() => {
+                if (window.confirm(`¿Eliminar "${song.title}"? Esta acción no se puede deshacer.`)) {
+                  onDelete(song.id)
+                }
+              }}
+              aria-label="Eliminar canción"
+              title="Eliminar"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+            </button>
+          )}
         </div>
 
       </div>
