@@ -419,3 +419,92 @@
 .resultLink:hover {
   text-decoration: underline;
 }
+
+/* ── Tag picker ──────────────────────────────────────────────── */
+
+.tagSection {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  background: var(--bg-card-hover);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.tagSectionHint {
+  font-size: 11px;
+  color: var(--text-subdued);
+  font-style: italic;
+  margin: 0 0 2px;
+}
+
+.tagGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tagGroupLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subdued);
+  opacity: 0.7;
+}
+
+.tagChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tagChip {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-subdued);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 500px;
+  padding: 3px 11px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+  line-height: 1.5;
+}
+
+.tagChip:hover:not(:disabled) {
+  color: var(--text-base);
+  border-color: rgba(168, 85, 247, 0.45);
+  background: rgba(168, 85, 247, 0.05);
+}
+
+.tagChip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tagChipActive {
+  color: var(--color-primary);
+  background: rgba(168, 85, 247, 0.14);
+  border-color: rgba(168, 85, 247, 0.55);
+  font-weight: 700;
+}
+
+.tagSelected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-subdued);
+}
+
+.tagSelectedBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background: rgba(168, 85, 247, 0.12);
+  border-radius: 500px;
+  padding: 1px 8px;
+}

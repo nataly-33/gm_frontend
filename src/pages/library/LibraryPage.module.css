@@ -182,17 +182,19 @@
 
 .miniPlayer {
   position: fixed;
-  bottom: 0;
-  left: 280px; /* Ancho del sidebar */
-  right: 0;
+  bottom: 8px;
+  left: calc(280px + 16px);
+  right: 8px;
   height: 72px;
   background: var(--bg-surface);
-  border-top: 1px solid var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 0 24px;
   z-index: 50;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.4);
 }
 
 .miniPlayerLoading {
@@ -224,6 +226,58 @@
 
 .miniPlayerAudio {
   flex: 1;
+  min-width: 0;
   height: 36px;
   accent-color: var(--color-primary);
+}
+
+.lyricsBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 500px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-subdued);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.lyricsBtn:hover {
+  color: var(--text-base);
+  background: var(--bg-card-hover);
+}
+
+.lyricsBtnActive {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+  background: rgba(168, 85, 247, 0.08);
+}
+
+@media (max-width: 900px) {
+  .miniPlayer {
+    left: 8px;
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .miniPlayerInfo {
+    min-width: 100px;
+  }
+
+  .miniPlayerTitle {
+    max-width: 120px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 640px) {
+  .miniPlayerInfo {
+    display: none;
+  }
 }

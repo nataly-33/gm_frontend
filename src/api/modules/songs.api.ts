@@ -9,10 +9,24 @@ import { ENDPOINTS } from '../endpoints'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
+export interface LyricsSegment {
+  start: number
+  end: number
+  text: string
+}
+
 export interface GenerateSongPayload {
+  title?: string
   description?: string
   prompt?: string
+  lyrics?: string
+  described_lyrics?: string
   audio_duration?: number
+  vocal_type?: 'male' | 'female' | 'auto'
+  language?: 'es' | 'en'
+  instrumental?: boolean
+  guidance_scale?: number
+  infer_step?: number
 }
 
 export interface GenerateSongResponse {
@@ -45,11 +59,26 @@ export interface LibrarySong {
   prompt: string
   genre?: string
   mood?: string
-  audio_duration?: number          // segundos
+  audio_duration?: number
   created_at: string
-  thumbnail_url?: string     // puede llegar pre-firmada desde el listado
+  thumbnail_url?: string
   play_url?: string
   tags?: SongTag[]
+  is_public?: boolean
+}
+
+export interface SongDetail extends LibrarySong {
+  lyrics?: string
+  described_lyrics?: string
+  lyrics_source?: string
+  instrumental?: boolean
+  guidance_scale?: number
+  infer_step?: number
+  seed?: number
+  status?: string
+  is_public?: boolean
+  updated_at?: string
+  lyrics_timestamps?: LyricsSegment[]
 }
 
 // ── API Functions ─────────────────────────────────────────────────────────────
@@ -107,4 +136,26 @@ export async function getSongThumbnailUrl(songId: string): Promise<string> {
 export async function getLibrary(): Promise<LibrarySong[]> {
   const { data } = await client.get<LibrarySong[]>(ENDPOINTS.songs.library)
   return data
+}
+
+/**
+ * Devuelve el detalle completo de una canción, incluyendo letra.
+ */
+export async function getSongDetail(songId: string): Promise<SongDetail> {
+  const { data } = await client.get<SongDetail>(ENDPOINTS.songs.detail(songId))
+  return data
+}
+
+/**
+ * Elimina una canción (soft delete). Retorna 204 sin cuerpo.
+ */
+export async function deleteSong(songId: string): Promise<void> {
+  await client.delete(ENDPOINTS.songs.delete(songId))
+}
+
+/**
+ * Publica o despublica una canción cambiando su campo is_public.
+ */
+export async function toggleSongPublic(songId: string, isPublic: boolean): Promise<void> {
+  await client.patch(ENDPOINTS.songs.update(songId), { is_public: isPublic })
 }

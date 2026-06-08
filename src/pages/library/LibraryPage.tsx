@@ -3,10 +3,11 @@
 // Biblioteca del usuario. Consume /api/songs/library/ y renderiza SongCards.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useEffect, useState } from 'react'
-import { getLibrary, getSongPlayUrl } from '../../api/modules/songs.api'
+import { useEffect, useRef, useState } from 'react'
+import { deleteSong, getLibrary, getSongPlayUrl, toggleSongPublic } from '../../api/modules/songs.api'
 import type { LibrarySong } from '../../api/modules/songs.api'
 import SongCard from '../../components/song/SongCard'
+import LyricsView from '../../components/song/LyricsView'
 import styles from './LibraryPage.module.css'
 import { useNavigate } from 'react-router-dom';
 
@@ -20,9 +21,11 @@ export default function LibraryPage() {
   const [sort, setSort]       = useState<SortOption>('recent')
 
   // ── Audio player state ─────────────────────────────────────
-  const [activeUrl, setActiveUrl]   = useState<string | null>(null)
-  const [activeSong, setActiveSong] = useState<LibrarySong | null>(null)
+  const [activeUrl, setActiveUrl]     = useState<string | null>(null)
+  const [activeSong, setActiveSong]   = useState<LibrarySong | null>(null)
   const [loadingPlay, setLoadingPlay] = useState(false)
+  const [showLyrics, setShowLyrics]   = useState(false)
+  const audioRef = useRef<HTMLAudioElement>(null)
 
   // ── Fetch library ──────────────────────────────────────────
   useEffect(() => {
@@ -36,9 +39,9 @@ export default function LibraryPage() {
   const navigate = useNavigate();
   // ── Play handler ───────────────────────────────────────────
   async function handlePlay(song: LibrarySong) {
-    // Si el mismo song ya está activo, no volver a pedir la URL
     if (activeSong?.id === song.id) return
 
+    setShowLyrics(false)
     setLoadingPlay(true)
     setActiveSong(song)
     try {
@@ -50,6 +53,31 @@ export default function LibraryPage() {
       setActiveSong(null)
     } finally {
       setLoadingPlay(false)
+    }
+  }
+
+  // ── Publish handler ────────────────────────────────────────
+  async function handlePublish(songId: string, isPublic: boolean) {
+    try {
+      await toggleSongPublic(songId, isPublic)
+      setSongs(prev => prev.map(s => s.id === songId ? { ...s, is_public: isPublic } : s))
+    } catch {
+      alert('No se pudo publicar. Intenta de nuevo.')
+    }
+  }
+
+  // ── Delete handler ─────────────────────────────────────────
+  async function handleDelete(songId: string) {
+    try {
+      await deleteSong(songId)
+      setSongs(prev => prev.filter(s => s.id !== songId))
+      if (activeSong?.id === songId) {
+        setActiveSong(null)
+        setActiveUrl(null)
+        setShowLyrics(false)
+      }
+    } catch {
+      alert('No se pudo eliminar la canción. Intenta de nuevo.')
     }
   }
 
@@ -154,7 +182,7 @@ export default function LibraryPage() {
       {filtered.length > 0 ? (
         <div className={styles.grid}>
           {filtered.map(song => (
-            <SongCard key={song.id} song={song} onPlay={handlePlay} />
+            <SongCard key={song.id} song={song} onPlay={handlePlay} onDelete={handleDelete} onPublish={handlePublish} />
           ))}
         </div>
       ) : !loading && (
@@ -189,15 +217,35 @@ export default function LibraryPage() {
                 )}
               </div>
               <audio
+                ref={audioRef}
                 key={activeUrl}
                 src={activeUrl}
                 controls
                 autoPlay
                 className={styles.miniPlayerAudio}
               />
+              <button
+                onClick={() => setShowLyrics(v => !v)}
+                className={`${styles.lyricsBtn} ${showLyrics ? styles.lyricsBtnActive : ''}`}
+                title={showLyrics ? 'Cerrar letra' : 'Ver letra'}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM6 4h6v6h6v10H6V4zm2 14h8v-2H8v2zm0-4h8v-2H8v2zm0-4h4V8H8v2z"/>
+                </svg>
+                Letra
+              </button>
             </>
           ) : null}
         </div>
+      )}
+
+      {/* ── Vista de letra a pantalla completa ──────────────────── */}
+      {showLyrics && activeSong && (
+        <LyricsView
+          song={activeSong}
+          audioRef={audioRef}
+          onClose={() => setShowLyrics(false)}
+        />
       )}
     </div>
   )
