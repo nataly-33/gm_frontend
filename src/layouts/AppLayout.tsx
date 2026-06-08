@@ -34,6 +34,33 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: '/stems',
+    label: 'Separar pistas',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M3 9h2v6H3V9zm4-2h2v10H7V7zm4-4h2v18h-2V3zm4 4h2v10h-2V7zm4 2h2v6h-2V9z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/playlists',
+    label: 'Playlists',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18A3 3 0 1 0 19 17V8h3V6h-5z" />
+      </svg>
+    ),
+  },
+  {
+    to: '/recommendations',
+    label: 'Para ti',
+    icon: (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+      </svg>
+    ),
+  },
+  {
     to: '/community',
     label: 'Comunidad',
     icon: (
@@ -70,7 +97,7 @@ interface Suscripcion {
 
 export default function AppLayout() {
   const navigate = useNavigate()
-  const { user, logout } = useAuthStore()
+  const { user, logout, setUser } = useAuthStore()
 
   const [planBadge,     setPlanBadge]    = useState<string | null>(null)
   const [checkingPlan, setCheckingPlan] = useState(true)
@@ -81,6 +108,15 @@ export default function AppLayout() {
       setCheckingPlan(false)
       return
     }
+
+    client.get(ENDPOINTS.auth.me)
+      .then(({ data }) => {
+        setUser(data)
+      })
+      .catch((err) => {
+        console.error("Error al sincronizar perfil:", err)
+      })
+
     client.get(ENDPOINTS.credits.subscriptions)
       .then(({ data }: { data: Suscripcion[] }) => {
         const activa = data.find(s => s.status === 'active')

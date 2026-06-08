@@ -59,7 +59,6 @@ const MONTHLY = [
 const MAX_GANANCIAS = Math.max(...MONTHLY.map(m => m.ganancias))
 const MAX_USUARIOS  = Math.max(...MONTHLY.map(m => m.usuarios))
 const MAX_CANCIONES = Math.max(...MONTHLY.map(m => m.canciones))
-const MAX_GENRE     = Math.max(...GENRE_DATA.map(g => g.canciones))
 
 function StatCardWidget({ label, value, change, positive, icon }: StatCard) {
   return (
