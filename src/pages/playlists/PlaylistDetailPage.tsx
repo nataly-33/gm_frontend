@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getPlaylist, sharePlaylist } from '../../api/modules/playlists.api'
-import type { Playlist } from '../../api/modules/playlists.api'
-import { getSongPlayUrl } from '../../api/modules/songs.api'
+import { getPlaylist, sharePlaylist, deletePlaylist, addSongToPlaylist, removeSongFromPlaylist } from '../../api/modules/playlists.api'
+import type { Playlist, PlaylistSongItem } from '../../api/modules/playlists.api'
+import { getSongPlayUrl, getLibrary } from '../../api/modules/songs.api'
+import type { LibrarySong } from '../../api/modules/songs.api'
+import LyricsView from '../../components/song/LyricsView'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL?.replace('/api', '') ?? 'http://localhost:8000'
 
@@ -18,6 +20,17 @@ export default function PlaylistDetailPage() {
   const [activeSongId, setActiveSongId] = useState<string | null>(null)
   const [loadingPlay, setLoadingPlay] = useState(false)
 
+  // Cambio 4: mini-player con letra
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [showLyrics, setShowLyrics] = useState(false)
+  const [activeSong, setActiveSong] = useState<PlaylistSongItem | null>(null)
+
+  // Cambio 2: modal agregar canciones
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [libraryForAdd, setLibraryForAdd] = useState<LibrarySong[]>([])
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [adding, setAdding] = useState(false)
+
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -26,6 +39,11 @@ export default function PlaylistDetailPage() {
       .catch(() => setError('No se pudo cargar la playlist.'))
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    if (!showAddModal) return
+    getLibrary().then(setLibraryForAdd).catch(() => {})
+  }, [showAddModal])
 
   async function handleShare() {
     if (!id) return
@@ -42,16 +60,19 @@ export default function PlaylistDetailPage() {
     }
   }
 
-  async function handlePlay(songId: string) {
-    if (activeSongId === songId) return
+  async function handlePlay(item: PlaylistSongItem) {
+    if (activeSongId === item.song.id) return
+    setShowLyrics(false)
     setLoadingPlay(true)
-    setActiveSongId(songId)
+    setActiveSongId(item.song.id)
+    setActiveSong(item)
     try {
-      const url = await getSongPlayUrl(songId)
+      const url = await getSongPlayUrl(item.song.id)
       setActiveUrl(url)
     } catch {
       setActiveUrl(null)
       setActiveSongId(null)
+      setActiveSong(null)
     } finally {
       setLoadingPlay(false)
     }
@@ -115,6 +136,39 @@ export default function PlaylistDetailPage() {
             {songs.length} canción{songs.length !== 1 ? 'es' : ''}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
+            {/* Cambio 1: Botón Eliminar playlist */}
+            <button
+              onClick={async () => {
+                if (!id || !window.confirm(`¿Eliminar la playlist "${playlist.title}"?`)) return
+                await deletePlaylist(id)
+                navigate('/playlists')
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 18px', borderRadius: 500, fontSize: 13, fontWeight: 600,
+                background: 'none', color: '#f87171',
+                border: '1px solid #f87171', cursor: 'pointer',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+              </svg>
+              Eliminar
+            </button>
+
+            {/* Cambio 2: Botón Agregar canciones */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 18px', borderRadius: 500, fontSize: 13, fontWeight: 600,
+                background: 'var(--bg-card-hover)', color: 'var(--text-base)',
+                border: '1px solid var(--border)', cursor: 'pointer',
+              }}
+            >
+              + Agregar canciones
+            </button>
+
             <button
               onClick={handleShare}
               disabled={sharing}
@@ -177,8 +231,9 @@ export default function PlaylistDetailPage() {
                       </p>
                     )}
                   </div>
+                  {/* Cambio 4: pasa item completo */}
                   <button
-                    onClick={() => handlePlay(item.song.id)}
+                    onClick={() => handlePlay(item)}
                     disabled={loadingPlay && activeSongId === item.song.id}
                     style={{
                       width: 32, height: 32, borderRadius: '50%', border: 'none',
@@ -192,20 +247,150 @@ export default function PlaylistDetailPage() {
                       <path d="M8 5v14l11-7z" />
                     </svg>
                   </button>
+                  {/* Cambio 3: botón quitar canción */}
+                  <button
+                    onClick={async () => {
+                      if (!id) return
+                      await removeSongFromPlaylist(id, item.song.id).catch(() => {})
+                      setPlaylist(prev => prev ? {
+                        ...prev,
+                        playlist_songs: prev.playlist_songs.filter(ps => ps.id !== item.id)
+                      } : prev)
+                    }}
+                    style={{
+                      width: 28, height: 28, borderRadius: '50%', border: 'none',
+                      background: 'none', color: 'var(--text-subdued)', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, transition: 'color 0.15s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-subdued)')}
+                    aria-label="Quitar de la playlist"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                  </button>
                 </div>
               )
             })}
         </div>
       )}
 
-      {/* Mini player */}
-      {activeSongId && activeUrl && (
+      {/* Cambio 4: Mini-player mejorado con letra */}
+      {activeSongId && (
         <div style={{
-          position: 'fixed', bottom: 0, left: 280, right: 0, height: 72,
-          background: 'var(--bg-surface)', borderTop: '1px solid var(--border)',
-          display: 'flex', alignItems: 'center', gap: 16, padding: '0 24px', zIndex: 50,
+          position: 'fixed', bottom: 8, left: 'calc(280px + 16px)', right: 8,
+          height: 72, background: 'var(--bg-surface)', border: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 16, padding: '0 24px',
+          zIndex: 50, borderRadius: 8, boxShadow: '0 -4px 24px rgba(0,0,0,0.4)',
         }}>
-          <audio key={activeUrl} src={activeUrl} controls autoPlay style={{ flex: 1, height: 36, accentColor: 'var(--color-primary)' }} />
+          {loadingPlay ? (
+            <span style={{ fontSize: 13, color: 'var(--text-subdued)' }}>Cargando audio...</span>
+          ) : activeUrl ? (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 160 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-base)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 }}>
+                  {activeSong?.song.title ?? 'Sin título'}
+                </span>
+              </div>
+              <audio
+                ref={audioRef}
+                key={activeUrl}
+                src={activeUrl}
+                controls
+                autoPlay
+                style={{ flex: 1, height: 36, accentColor: 'var(--color-primary)', minWidth: 0 }}
+              />
+              <button
+                onClick={() => setShowLyrics(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+                  borderRadius: 500, border: `1px solid ${showLyrics ? 'var(--color-primary)' : 'var(--border)'}`,
+                  background: showLyrics ? 'rgba(168,85,247,0.08)' : 'none',
+                  color: showLyrics ? 'var(--color-primary)' : 'var(--text-subdued)',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM6 4h6v6h6v10H6V4zm2 14h8v-2H8v2zm0-4h8v-2H8v2zm0-4h4V8H8v2z"/>
+                </svg>
+                Letra
+              </button>
+            </>
+          ) : null}
+        </div>
+      )}
+
+      {showLyrics && activeSong && (
+        <LyricsView
+          song={activeSong.song as unknown as LibrarySong}
+          audioRef={audioRef}
+          onClose={() => setShowLyrics(false)}
+        />
+      )}
+
+      {/* Cambio 2: Modal agregar canciones */}
+      {showAddModal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', borderRadius: 12, padding: 24,
+            width: 420, maxHeight: '70vh', display: 'flex', flexDirection: 'column', gap: 16,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Agregar canciones</h2>
+              <button onClick={() => { setShowAddModal(false); setSelectedIds(new Set()) }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-subdued)', cursor: 'pointer', fontSize: 20 }}>✕</button>
+            </div>
+            <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }}>
+              {libraryForAdd
+                .filter(s => !songs.some(ps => ps.song.id === s.id))
+                .map(s => (
+                  <label key={s.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                    borderRadius: 6, cursor: 'pointer',
+                    background: selectedIds.has(s.id) ? 'rgba(168,85,247,0.1)' : 'transparent',
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(s.id)}
+                      onChange={() => {
+                        const next = new Set(selectedIds)
+                        next.has(s.id) ? next.delete(s.id) : next.add(s.id)
+                        setSelectedIds(next)
+                      }}
+                      style={{ accentColor: 'var(--color-primary)' }}
+                    />
+                    <span style={{ fontSize: 14, color: 'var(--text-base)' }}>{s.title}</span>
+                  </label>
+                ))}
+            </div>
+            <button
+              disabled={selectedIds.size === 0 || adding}
+              onClick={async () => {
+                if (!id) return
+                setAdding(true)
+                for (const songId of selectedIds) {
+                  await addSongToPlaylist(id, songId).catch(() => {})
+                }
+                const updated = await getPlaylist(id)
+                setPlaylist(updated)
+                setShowAddModal(false)
+                setSelectedIds(new Set())
+                setAdding(false)
+              }}
+              style={{
+                padding: '10px', borderRadius: 8, fontSize: 14, fontWeight: 700,
+                background: 'var(--color-primary)', color: '#000', border: 'none', cursor: 'pointer',
+                opacity: selectedIds.size === 0 || adding ? 0.5 : 1,
+              }}
+            >
+              {adding ? 'Agregando...' : `Agregar ${selectedIds.size} canción${selectedIds.size !== 1 ? 'es' : ''}`}
+            </button>
+          </div>
         </div>
       )}
     </div>
