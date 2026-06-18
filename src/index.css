@@ -7,19 +7,21 @@
    Variables CSS para uso fuera de Tailwind
    ============================================= */
 :root {
-  --color-primary:       #A855F7;
-  --color-primary-hover: #C084FC;
-  --bg-base:             #000000;
-  --bg-surface:          #121212;
-  --bg-card:             #181818;
-  --bg-card-hover:       #282828;
-  --text-base:           #FFFFFF;
-  --text-subdued:        #B3B3B3;
-  --border:              #282828;
+  --color-primary: #a855f7;
+  --color-primary-hover: #c084fc;
+  --bg-base: #000000;
+  --bg-surface: #121212;
+  --bg-card: #181818;
+  --bg-card-hover: #282828;
+  --text-base: #ffffff;
+  --text-subdued: #b3b3b3;
+  --border: #282828;
 }
 
 @layer base {
-  html, body, #root {
+  html,
+  body,
+  #root {
     @apply h-full;
   }
   body {
@@ -27,17 +29,33 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  h1 { @apply text-3xl font-bold tracking-tight; }
-  h2 { @apply text-2xl font-bold; }
-  h3 { @apply text-base font-bold; }
-  a  { @apply transition-colors; }
+  h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+  h2 {
+    @apply text-2xl font-bold;
+  }
+  h3 {
+    @apply text-base font-bold;
+  }
+  a {
+    @apply transition-colors;
+  }
 }
 
 /* Scrollbar personalizado */
-::-webkit-scrollbar        { width: 6px; }
-::-webkit-scrollbar-track  { background: transparent; }
-::-webkit-scrollbar-thumb  { @apply bg-card-hover rounded; }
-::-webkit-scrollbar-thumb:hover { @apply bg-muted; }
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-card-hover rounded;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted;
+}
 
 /* ── Inputs de perfil ── */
 .input-field {
@@ -52,10 +70,10 @@
   transition: border-color 0.15s;
 }
 .input-field:focus {
-  border-color: #A855F7;
+  border-color: #a855f7;
 }
 .input-field::placeholder {
-  color: #6B7280;
+  color: #6b7280;
 }
 
 .input-profile {
@@ -67,12 +85,14 @@
   color: white;
   font-size: 14px;
   outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 .input-profile:focus {
-  border-color: #A855F7;
+  border-color: #a855f7;
   background: rgba(168, 85, 247, 0.08);
 }
 .input-profile::placeholder {
-  color: #6B7280;
+  color: #6b7280;
 }

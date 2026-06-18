@@ -88,13 +88,8 @@ export interface SongDetail extends LibrarySong {
  * Requiere al menos `description` o `prompt`.
  * Lanza error 402 si no hay créditos suficientes.
  */
-export async function generateSong(
-  payload: GenerateSongPayload,
-): Promise<GenerateSongResponse> {
-  const { data } = await client.post<GenerateSongResponse>(
-    ENDPOINTS.songs.generate,
-    payload,
-  )
+export async function generateSong(payload: GenerateSongPayload): Promise<GenerateSongResponse> {
+  const { data } = await client.post<GenerateSongResponse>(ENDPOINTS.songs.generate, payload)
   return data
 }
 
@@ -103,9 +98,7 @@ export async function generateSong(
  * Usado en el polling cada 5 segundos.
  */
 export async function getSongJob(jobId: string): Promise<JobStatusResponse> {
-  const { data } = await client.get<JobStatusResponse>(
-    ENDPOINTS.songs.job(jobId),
-  )
+  const { data } = await client.get<JobStatusResponse>(ENDPOINTS.songs.job(jobId))
   return data
 }
 
@@ -113,9 +106,7 @@ export async function getSongJob(jobId: string): Promise<JobStatusResponse> {
  * Obtiene la URL firmada de S3 para reproducir el audio de una canción.
  */
 export async function getSongPlayUrl(songId: string): Promise<string> {
-  const { data } = await client.get<SignedUrlResponse>(
-    ENDPOINTS.songs.playUrl(songId),
-  )
+  const { data } = await client.get<SignedUrlResponse>(ENDPOINTS.songs.playUrl(songId))
   return data.url
 }
 
@@ -123,9 +114,7 @@ export async function getSongPlayUrl(songId: string): Promise<string> {
  * Obtiene la URL firmada de S3 para el thumbnail/portada de una canción.
  */
 export async function getSongThumbnailUrl(songId: string): Promise<string> {
-  const { data } = await client.get<SignedUrlResponse>(
-    ENDPOINTS.songs.thumbnailUrl(songId),
-  )
+  const { data } = await client.get<SignedUrlResponse>(ENDPOINTS.songs.thumbnailUrl(songId))
   return data.url
 }
 
