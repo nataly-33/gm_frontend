@@ -28,7 +28,10 @@ export async function getPlaylists(): Promise<Playlist[]> {
   return data
 }
 
-export async function createPlaylist(payload: { title: string; description?: string }): Promise<Playlist> {
+export async function createPlaylist(payload: {
+  title: string
+  description?: string
+}): Promise<Playlist> {
   const { data } = await client.post<Playlist>(ENDPOINTS.playlists.list, payload)
   return data
 }
@@ -38,7 +41,10 @@ export async function getPlaylist(id: string): Promise<Playlist> {
   return data
 }
 
-export async function updatePlaylist(id: string, payload: { title?: string; description?: string }): Promise<Playlist> {
+export async function updatePlaylist(
+  id: string,
+  payload: { title?: string; description?: string }
+): Promise<Playlist> {
   const { data } = await client.patch<Playlist>(ENDPOINTS.playlists.detail(id), payload)
   return data
 }
@@ -47,7 +53,11 @@ export async function deletePlaylist(id: string): Promise<void> {
   await client.delete(ENDPOINTS.playlists.detail(id))
 }
 
-export async function addSongToPlaylist(playlistId: string, songId: string, position?: number): Promise<void> {
+export async function addSongToPlaylist(
+  playlistId: string,
+  songId: string,
+  position?: number
+): Promise<void> {
   await client.post(ENDPOINTS.playlists.songs(playlistId), { song_id: songId, position })
 }
 

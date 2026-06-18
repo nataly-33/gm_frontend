@@ -27,7 +27,9 @@ export interface CommunityStats {
   plays_today: number
 }
 
-export async function getCommunityFeed(params: { search?: string; tag?: string; page?: number } = {}): Promise<CommunityFeedResponse> {
+export async function getCommunityFeed(
+  params: { search?: string; tag?: string; page?: number } = {}
+): Promise<CommunityFeedResponse> {
   const { data } = await client.get<CommunityFeedResponse>(ENDPOINTS.community.feed, { params })
   return data
 }
