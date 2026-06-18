@@ -1,0 +1,16 @@
+# Forzar LF en todos los archivos de texto para evitar conflictos CRLF en Windows.
+# Prettier esta configurado con endOfLine: lf, y git con core.autocrlf=true
+# causaria que los archivos siempre aparezcan como modificados sin este archivo.
+* text=auto eol=lf
+
+# Binarios — git no debe tocar los line endings
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
