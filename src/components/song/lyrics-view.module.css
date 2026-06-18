@@ -1,0 +1,172 @@
+.overlay {
+  position: fixed;
+  left: 280px;
+  right: 0;
+  top: 0;
+  bottom: 72px; /* Altura del mini player */
+  background: linear-gradient(160deg, #0e0e0e 0%, #1a1208 100%);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Botón cerrar ──────────────────────────────────────── */
+
+.closeBtn {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background 0.15s;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+}
+
+/* ── Metadatos de la canción ───────────────────────────── */
+
+.songMeta {
+  padding: 20px 64px 0;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lyricsLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.songTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80%;
+}
+
+/* ── Contenedor de letra ───────────────────────────────── */
+
+.lyricsWrapper {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.lyricsContainer {
+  height: 100%;
+  overflow-y: auto;
+  padding: 36vh 64px 36vh;
+  scrollbar-width: none;
+}
+
+.lyricsContainer::-webkit-scrollbar {
+  display: none;
+}
+
+/* Desvanecidos arriba y abajo */
+
+.fadeTop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 130px;
+  background: linear-gradient(to bottom, #0e0e0e 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.fadeBottom {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 130px;
+  background: linear-gradient(to top, #0e0e0e 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Líneas de letra ───────────────────────────────────── */
+
+.lyricLine {
+  line-height: 1.3;
+  margin-bottom: 20px;
+  color: #ffffff;
+  font-weight: 600;
+  cursor: default;
+  transition:
+    opacity 0.5s ease,
+    font-size 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: left center;
+}
+
+.lyricLineActive {
+  font-weight: 800;
+}
+
+.sectionLabel {
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: rgba(168, 85, 247, 0.55);
+  margin: 28px 0 10px;
+  font-weight: 700;
+}
+
+.cueLine {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.18);
+  font-style: italic;
+  margin-bottom: 14px;
+  font-weight: 400;
+}
+
+/* ── Estado vacío / cargando ───────────────────────────── */
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: rgba(255, 255, 255, 0.22);
+  font-size: 15px;
+  padding-top: 60px;
+}
+
+.message p {
+  margin: 0;
+}
