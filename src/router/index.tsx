@@ -1,28 +1,63 @@
+import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
-import AuthLayout from '../layouts/AuthLayout'
-import AppLayout from '../layouts/AppLayout'
-import AdminLayout from '../layouts/AdminLayout'
-import LoginPage from '../pages/auth/LoginPage'
-import RegisterPage from '../pages/auth/RegisterPage'
-import PrivateRoute from './PrivateRoute'
-import AdminRoute from './AdminRoute'
-import DashboardPage from '../pages/admin/DashboardPage'
-import PlanesPage from '../pages/admin/PlanesPage'
-import RolesPage from '../pages/admin/RolesPage'
-import AdminProfilePage from '../pages/admin/AdminProfilePage'
-import UsersAdminPage from '../pages/admin/UsersAdminPage'
-import ReportsAdminPage from '../pages/admin/ReportsAdminPage'
-import ClienteProfilePage from '../pages/cliente/ClienteProfilePage'
-import PaymentsPage from '../pages/cliente/Paymentspage'
-import CommunityPage from '../pages/cliente/CommunityPage'
-import LibraryPage from '../pages/library/LibraryPage'
-import CreatePage from '../pages/create/CreatePage'
-import StemsPage from '../pages/stems/StemsPage'
-import ForYouPage from '../pages/recommendations/ForYouPage'
-import PlaylistsPage from '../pages/playlists/PlaylistsPage'
-import PlaylistDetailPage from '../pages/playlists/PlaylistDetailPage'
-import MixPage from '../pages/mix/MixPage'
-import MixEditorPage from '../pages/mix/MixEditorPage'
+
+import AuthLayout from '../layouts/auth-layout'
+import AppLayout from '../layouts/app-layout'
+import AdminLayout from '../layouts/admin-layout'
+import PrivateRoute from './private-route'
+import AdminRoute from './admin-route'
+
+// ── Lazy-loaded pages ─────────────────────────────────────────────────────
+// Cada import() genera un chunk separado que solo se carga cuando se navega
+// a esa ruta, reduciendo el bundle inicial.
+
+const LoginPage = lazy(() => import('../pages/auth/login-page'))
+const RegisterPage = lazy(() => import('../pages/auth/register-page'))
+
+const DashboardPage = lazy(() => import('../pages/admin/dashboard-page'))
+const PlanesPage = lazy(() => import('../pages/admin/planes-page'))
+const RolesPage = lazy(() => import('../pages/admin/roles-page'))
+const AdminProfilePage = lazy(() => import('../pages/admin/admin-profile-page'))
+const UsersAdminPage = lazy(() => import('../pages/admin/users-admin-page'))
+const ReportsAdminPage = lazy(() => import('../pages/admin/reports-admin-page'))
+
+const ClienteProfilePage = lazy(() => import('../pages/cliente/cliente-profile-page'))
+const PaymentsPage = lazy(() => import('../pages/cliente/payments-page'))
+const CommunityPage = lazy(() => import('../pages/cliente/community-page'))
+
+const LibraryPage = lazy(() => import('../pages/library/library-page'))
+const CreatePage = lazy(() => import('../pages/create/create-page'))
+const StemsPage = lazy(() => import('../pages/stems/stems-page'))
+const ForYouPage = lazy(() => import('../pages/recommendations/for-you-page'))
+const PlaylistsPage = lazy(() => import('../pages/playlists/playlists-page'))
+const PlaylistDetailPage = lazy(() => import('../pages/playlists/playlist-detail-page'))
+const MixPage = lazy(() => import('../pages/mix/mix-page'))
+const MixEditorPage = lazy(() => import('../pages/mix/mix-editor-page'))
+
+// ── Fallback de carga ─────────────────────────────────────────────────────
+
+function PageLoader() {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%',
+        color: 'var(--text-subdued)',
+        fontSize: 14,
+      }}
+    >
+      Cargando...
+    </div>
+  )
+}
+
+function withSuspense(element: React.ReactElement) {
+  return <Suspense fallback={<PageLoader />}>{element}</Suspense>
+}
+
+// ── Placeholder para rutas en construcción ────────────────────────────────
 
 const placeholder = (label: string) => (
   <div style={{ padding: '32px', color: 'var(--text-base)' }}>
@@ -31,13 +66,15 @@ const placeholder = (label: string) => (
   </div>
 )
 
+// ── Router ────────────────────────────────────────────────────────────────
+
 export const router = createBrowserRouter([
   // ── Auth ────────────────────────────────────────────────
   {
     element: <AuthLayout />,
     children: [
-      { path: '/login',    element: <LoginPage /> },
-      { path: '/register', element: <RegisterPage /> },
+      { path: '/login', element: withSuspense(<LoginPage />) },
+      { path: '/register', element: withSuspense(<RegisterPage />) },
     ],
   },
 
@@ -45,23 +82,22 @@ export const router = createBrowserRouter([
   {
     element: <PrivateRoute />,
     children: [
-
       // Rutas cliente
       {
         element: <AppLayout />,
         children: [
-          { path: '/',               element: placeholder('Inicio') },
-          { path: '/library',        element: <LibraryPage /> },
-          { path: '/create',         element: <CreatePage /> },
-          { path: '/stems',          element: <StemsPage /> },
-          { path: '/community',      element: <CommunityPage /> },
-          { path: '/recommendations',element: <ForYouPage /> },
-          { path: '/playlists',      element: <PlaylistsPage /> },
-          { path: '/playlists/:id',  element: <PlaylistDetailPage /> },
-          { path: '/profile',        element: <ClienteProfilePage /> },
-          { path: '/payments',       element: <PaymentsPage /> },
-          { path: '/mix',            element: <MixPage /> },
-          { path: '/mix/:id',        element: <MixEditorPage /> },
+          { path: '/', element: placeholder('Inicio') },
+          { path: '/library', element: withSuspense(<LibraryPage />) },
+          { path: '/create', element: withSuspense(<CreatePage />) },
+          { path: '/stems', element: withSuspense(<StemsPage />) },
+          { path: '/community', element: withSuspense(<CommunityPage />) },
+          { path: '/recommendations', element: withSuspense(<ForYouPage />) },
+          { path: '/playlists', element: withSuspense(<PlaylistsPage />) },
+          { path: '/playlists/:id', element: withSuspense(<PlaylistDetailPage />) },
+          { path: '/profile', element: withSuspense(<ClienteProfilePage />) },
+          { path: '/payments', element: withSuspense(<PaymentsPage />) },
+          { path: '/mix', element: withSuspense(<MixPage />) },
+          { path: '/mix/:id', element: withSuspense(<MixEditorPage />) },
         ],
       },
 
@@ -72,17 +108,16 @@ export const router = createBrowserRouter([
           {
             element: <AdminLayout />,
             children: [
-              { path: '/admin',           element: <DashboardPage /> },
-              { path: '/admin/roles',     element: <RolesPage /> },
-              { path: '/admin/planes',    element: <PlanesPage /> },
-              { path: '/admin/usuarios',  element: <UsersAdminPage /> },
-              { path: '/admin/reportes',  element: <ReportsAdminPage /> },
-              { path: '/admin/profile',   element: <AdminProfilePage /> },
+              { path: '/admin', element: withSuspense(<DashboardPage />) },
+              { path: '/admin/roles', element: withSuspense(<RolesPage />) },
+              { path: '/admin/planes', element: withSuspense(<PlanesPage />) },
+              { path: '/admin/usuarios', element: withSuspense(<UsersAdminPage />) },
+              { path: '/admin/reportes', element: withSuspense(<ReportsAdminPage />) },
+              { path: '/admin/profile', element: withSuspense(<AdminProfilePage />) },
             ],
           },
         ],
       },
-
     ],
   },
 
