@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getForYou, getSuggestedTags } from '../../api/modules/recommendations.api'
 import type { SuggestedTag } from '../../api/modules/recommendations.api'
 import type { LibrarySong } from '../../api/modules/songs.api'
@@ -10,18 +10,30 @@ export default function ForYouPage() {
   const [songs, setSongs] = useState<LibrarySong[]>([])
   const [tags, setTags] = useState<SuggestedTag[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [activeUrl, setActiveUrl] = useState<string | null>(null)
   const [activeSong, setActiveSong] = useState<LibrarySong | null>(null)
   const [loadingPlay, setLoadingPlay] = useState(false)
 
-  useEffect(() => {
-    Promise.all([getForYou(), getSuggestedTags()])
-      .then(([s, t]) => {
-        setSongs(s)
-        setTags(t)
-      })
-      .finally(() => setLoading(false))
+  const fetchData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
+    try {
+      const [s, t] = await Promise.all([getForYou(), getSuggestedTags()])
+      setSongs(s)
+      setTags(t)
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
   }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   async function handlePlay(song: LibrarySong) {
     if (activeSong?.id === song.id) {
@@ -59,13 +71,36 @@ export default function ForYouPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.pageTitle}>Para ti</h1>
-        <p className={styles.pageSubtitle}>Canciones públicas basadas en tus gustos musicales</p>
+        <div className={styles.headerRow}>
+          <div>
+            <h1 className={styles.pageTitle}>Para ti</h1>
+            <p className={styles.pageSubtitle}>
+              Canciones públicas recomendadas por el modelo musical
+            </p>
+          </div>
+          <button
+            className={styles.refreshBtn}
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            title="Actualizar recomendaciones"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className={refreshing ? styles.spinning : undefined}
+            >
+              <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
+            </svg>
+            {refreshing ? 'Actualizando...' : 'Actualizar'}
+          </button>
+        </div>
       </div>
 
       {tags.length > 0 && (
         <div className={styles.tagsSection}>
-          <p className={styles.tagsLabel}>Tus géneros favoritos</p>
+          <p className={styles.tagsLabel}>Tus géneros detectados</p>
           <div className={styles.tagChips}>
             {tags.map((t) => (
               <span key={t.id} className={styles.tagChip}>
@@ -91,7 +126,7 @@ export default function ForYouPage() {
           </div>
           <h3 className={styles.emptyTitle}>Sin recomendaciones todavía</h3>
           <p className={styles.emptyText}>
-            Escucha y crea más canciones para que el sistema aprenda tus gustos.
+            Crea canciones con descripción libre para que el modelo aprenda tus gustos.
           </p>
         </div>
       )}
