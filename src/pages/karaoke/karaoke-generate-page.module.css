@@ -1,0 +1,351 @@
+/* src/pages/karaoke/karaoke-generate-page.module.css */
+
+.page {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  color: var(--text-base);
+}
+
+/* ── Tarjeta central ─────────────────────────────────────────── */
+
+.card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ── Portada de la canción ───────────────────────────────────── */
+
+.coverWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  background: var(--bg-card-hover);
+  overflow: hidden;
+}
+
+.coverImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coverPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-subdued);
+}
+
+.coverGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, transparent 60%);
+}
+
+.coverTitle {
+  position: absolute;
+  bottom: 14px;
+  left: 18px;
+  right: 18px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Cuerpo de la tarjeta ────────────────────────────────────── */
+
+.body {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.costRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.costInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.costLabel {
+  font-size: 13px;
+  color: var(--text-subdued);
+  margin: 0;
+}
+
+.costBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-base);
+  margin: 0;
+}
+
+.costBadgeSub {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-subdued);
+}
+
+.balanceChip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.balanceLabel {
+  font-size: 11px;
+  color: var(--text-subdued);
+}
+
+.balanceValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.generateBtn {
+  width: 100%;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  transition: opacity 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.generateBtn:hover {
+  opacity: 0.88;
+}
+
+.generateBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-subdued);
+  background: var(--bg-card-hover);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.cancelBtn:hover {
+  color: var(--text-base);
+}
+
+/* ── Estado: generando ───────────────────────────────────────── */
+
+.loadingBody {
+  padding: 28px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.loadingTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-base);
+  margin: 0;
+  text-align: center;
+}
+
+.loadingSubtitle {
+  font-size: 13px;
+  color: var(--text-subdued);
+  margin: -16px 0 0;
+  text-align: center;
+}
+
+.steps {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-subdued);
+  transition: color 0.3s;
+}
+
+.stepActive {
+  color: var(--text-base);
+  font-weight: 600;
+}
+
+.stepDone {
+  color: var(--color-primary);
+}
+
+.stepIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.3s;
+}
+
+.stepIconActive {
+  border-color: #a855f7;
+}
+
+.stepIconDone {
+  border-color: var(--color-primary);
+  background: rgba(168, 85, 247, 0.12);
+}
+
+.spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(168, 85, 247, 0.3);
+  border-top-color: #a855f7;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Estado: sin créditos ────────────────────────────────────── */
+
+.alertCard {
+  padding: 28px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.alertIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.alertIconError {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+}
+
+.alertIconWarning {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fbbf24;
+}
+
+.alertTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-base);
+}
+
+.alertText {
+  font-size: 13px;
+  color: var(--text-subdued);
+  margin: 0;
+  max-width: 280px;
+}
+
+.alertActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 0 8px;
+}
+
+.alertPrimaryBtn {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  transition: opacity 0.15s;
+}
+
+.alertPrimaryBtn:hover {
+  opacity: 0.88;
+}
+
+.alertSecondaryBtn {
+  width: 100%;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-subdued);
+  background: var(--bg-card-hover);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.alertSecondaryBtn:hover {
+  color: var(--text-base);
+}

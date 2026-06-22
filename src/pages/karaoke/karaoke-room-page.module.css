@@ -1,0 +1,576 @@
+/* src/pages/karaoke/karaoke-room-page.module.css */
+
+/* ── Base (compartida entre waiting y playing) ───────────────── */
+
+.page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Waiting room ────────────────────────────────────────────── */
+
+.waitingPage {
+  background: var(--bg-surface);
+}
+
+.waitingInner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-subdued);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+  align-self: flex-start;
+}
+
+.backBtn:hover {
+  color: var(--text-base);
+}
+
+.roomHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roomLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-subdued);
+}
+
+.roomCodeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.roomCode {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--text-base);
+  letter-spacing: 0.1em;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border);
+  border-radius: 500px;
+  color: var(--text-subdued);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.copyBtn:hover {
+  color: var(--text-base);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.copyBtnDone {
+  color: #a855f7;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.songChip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-card-hover);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.songChipIcon {
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+.songChipTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Participantes */
+
+.participantsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.participantsLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-subdued);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Burbujas de participantes con anillo de volumen */
+
+.bubblesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  padding: 8px 0 4px;
+}
+
+.bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bubbleAvatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  transition: box-shadow 0.1s ease;
+}
+
+.bubbleName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-base);
+  text-align: center;
+  max-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bubbleHostBadge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #a855f7;
+}
+
+/* Mini burbujas para el header de la sala en reproducción */
+
+.miniBubble {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  transition: box-shadow 0.1s ease;
+}
+
+.miniBubblesRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.participantList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.participantRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-card-hover);
+  font-size: 13px;
+  color: var(--text-base);
+}
+
+.participantAvatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.participantName {
+  flex: 1;
+  font-weight: 500;
+}
+
+.hostBadge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.12);
+  border-radius: 500px;
+  padding: 2px 8px;
+}
+
+/* Waiting state messages */
+
+.waitingMsg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-size: 13px;
+  color: #c084fc;
+  font-weight: 500;
+}
+
+.waitingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a855f7;
+  animation: pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Action buttons */
+
+.startBtn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  transition: opacity 0.15s;
+}
+
+.startBtn:hover { opacity: 0.88; }
+.startBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Playing room ────────────────────────────────────────────── */
+
+.playingPage {
+  background: linear-gradient(160deg, #0c0c0c 0%, #150d1f 100%);
+}
+
+.playingHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+.roomPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 500px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c084fc;
+  letter-spacing: 0.05em;
+}
+
+.participantsPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 500px;
+  padding: 5px 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.lyricsWrapper {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.lyricsScroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 32vh 64px 16vh;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.lyricsScroll::-webkit-scrollbar { display: none; }
+
+.fadeTop {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 110px;
+  background: linear-gradient(to bottom, #0c0c0c 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.fadeBottom {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 110px;
+  background: linear-gradient(to top, #150d1f 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Footer del player (solo host) */
+
+.playingFooter {
+  flex-shrink: 0;
+  padding: 10px 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2;
+}
+
+.footerInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footerTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 65%;
+}
+
+.footerTime {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressWrapper {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #a855f7 0%, #7c3aed 100%);
+  pointer-events: none;
+  transition: width 0.1s linear;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.playBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #a855f7;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.playBtn:hover { background: #9333ea; transform: scale(1.06); }
+
+.skipBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.skipBtn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+.endBtn {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 500px;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.endBtn:hover { background: rgba(239, 68, 68, 0.2); }
+
+/* Guest: mensaje de sincronización + botón de salida */
+
+.guestFooter {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 20px;
+}
+
+.guestSyncMsg {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0;
+}
+
+.leaveBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 500px;
+  color: #f87171;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 18px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.leaveBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* ── Estados de carga / error ────────────────────────────────── */
+
+.centerState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+  background: var(--bg-surface);
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(168, 85, 247, 0.2);
+  border-top-color: #a855f7;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.centerTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-base);
+  margin: 0;
+}
+
+.centerText {
+  font-size: 13px;
+  color: var(--text-subdued);
+  margin: 0;
+  max-width: 280px;
+}
+
+.centerBtn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+}
+
+/* ── Ended state ─────────────────────────────────────────────── */
+
+.endedPage {
+  background: var(--bg-surface);
+}

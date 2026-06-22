@@ -80,4 +80,12 @@ export const ENDPOINTS = {
     export: (mixId: string) => `/mix/projects/${mixId}/export/`,
     exportStatus: (exportId: string) => `/mix/exports/${exportId}/`,
   },
+  // TODO BACKEND: activar cuando exista apps/karaoke/ en el backend
+  karaoke: {
+    catalog: '/karaoke/catalog/',
+    generate: (songId: string) => `/karaoke/songs/${songId}/generate/`,
+    status: (karaokeId: string) => `/karaoke/${karaokeId}/status/`,
+    play: (karaokeId: string) => `/karaoke/${karaokeId}/play/`,
+    myLibrary: '/karaoke/my-library/',
+  },
 } as const
