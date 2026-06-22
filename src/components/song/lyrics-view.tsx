@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
-import type { LibrarySong, LyricsSegment } from '../../api/modules/songs.api'
+import { useState, useEffect, useRef } from 'react'
+import type { LibrarySong } from '../../api/modules/songs.api'
 import { getSongDetail } from '../../api/modules/songs.api'
 import styles from './lyrics-view.module.css'
 
@@ -9,53 +9,36 @@ interface LyricsLine {
   startTime: number
 }
 
+const SECONDS_PER_LINE = 4.5
+const INTRO_SECONDS    = 8
+
 function parseLyrics(text: string, audioDuration: number): LyricsLine[] {
   const raw = text
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean)
+
   const lines: LyricsLine[] = raw.map((t) => ({
     text: t,
     type: /^\[.+\]$/.test(t) ? 'section' : /^\(.+\)$/.test(t) ? 'cue' : 'lyric',
     startTime: -1,
   }))
 
-  // Detect whether the first section tag is [intro]
-  const firstSection = lines.find((l) => l.type === 'section')
-  const hasIntro = firstSection !== undefined && /^\[intro\]$/i.test(firstSection.text)
+  const introTime = Math.min(INTRO_SECONDS, audioDuration * 0.08)
 
-  // Detect whether any section tag is [outro]
-  const hasOutro = lines.some((l) => l.type === 'section' && /^\[outro\]$/i.test(l.text))
-
-  // Dynamic intro time: ACE-Step generates long intros when the prompt includes [intro]
-  const introTime = hasIntro ? audioDuration * 0.3 : Math.min(8, audioDuration * 0.08)
-
-  // Dynamic outro time
-  const outroTime = hasOutro ? audioDuration * 0.08 : audioDuration * 0.03
-
-  const singableTime = audioDuration - introTime - outroTime
-
-  // Only lyric lines consume time slots; section/cue lines inherit the next lyric's startTime
-  const lyricLines = lines.filter((l) => l.type === 'lyric')
-  const n = Math.max(lyricLines.length, 1)
-
-  // First pass: assign startTime to every lyric line
+  // Asignar startTime a cada línea de letra: introTime + idx * 4.5s
   let lyricIdx = 0
   const timed = lines.map((line) => {
-    if (line.type !== 'lyric') {
-      return line
-    }
-    const t = introTime + (lyricIdx / n) * singableTime
+    if (line.type !== 'lyric') return line
+    const t = introTime + lyricIdx * SECONDS_PER_LINE
     lyricIdx++
     return { ...line, startTime: t }
   })
 
-  // Second pass: section/cue lines get the startTime of the next lyric line
-  // so the section header appears just before the verse that follows it
+  // Secciones y cues heredan el tiempo de la siguiente línea de letra
   for (let i = 0; i < timed.length; i++) {
     if (timed[i].type !== 'lyric') {
-      // Look ahead for the nearest lyric line
-      let nextLyricTime = introTime // fallback: show at song start
+      let nextLyricTime = introTime
       for (let j = i + 1; j < timed.length; j++) {
         if (timed[j].type === 'lyric') {
           nextLyricTime = timed[j].startTime
@@ -69,54 +52,6 @@ function parseLyrics(text: string, audioDuration: number): LyricsLine[] {
   return timed
 }
 
-interface TimedLine {
-  text: string
-  type: 'lyric' | 'section' | 'cue'
-  startTime: number
-  endTime: number
-}
-
-function buildTimedLines(storedLyrics: string, timestamps: LyricsSegment[]): TimedLine[] {
-  const rawLines = storedLyrics
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0)
-  const sectionRegex = /^\[.+\]$/
-  const cueRegex = /^\(.+\)$/
-
-  // Count total sung (non-section, non-cue) lines for proportional mapping
-  const totalLyricLines = rawLines.filter((t) => !sectionRegex.test(t) && !cueRegex.test(t)).length
-
-  let lyricIdx = 0
-
-  return rawLines.map((text) => {
-    if (sectionRegex.test(text)) {
-      // Section: use the timestamp of the next sung line (proportional)
-      const nextSegIdx =
-        totalLyricLines > 0
-          ? Math.round((lyricIdx * (timestamps.length - 1)) / Math.max(totalLyricLines - 1, 1))
-          : 0
-      const ts = timestamps[Math.min(nextSegIdx, timestamps.length - 1)] ?? { start: 0, end: 0 }
-      return { text, type: 'section' as const, startTime: ts.start, endTime: ts.start }
-    }
-    if (cueRegex.test(text)) {
-      const prevSegIdx = Math.max(
-        0,
-        Math.round(((lyricIdx - 1) * (timestamps.length - 1)) / Math.max(totalLyricLines - 1, 1))
-      )
-      const ts = timestamps[prevSegIdx] ?? { start: 0, end: 0 }
-      return { text, type: 'cue' as const, startTime: ts.start, endTime: ts.start }
-    }
-    // Sung line: proportional mapping — line lyricIdx out of totalLyricLines
-    const segIdx = Math.round(
-      (lyricIdx * (timestamps.length - 1)) / Math.max(totalLyricLines - 1, 1)
-    )
-    const ts = timestamps[Math.min(segIdx, timestamps.length - 1)] ?? { start: 0, end: 999 }
-    lyricIdx++
-    return { text, type: 'lyric' as const, startTime: ts.start, endTime: ts.end }
-  })
-}
-
 interface Props {
   song: LibrarySong
   audioRef: React.RefObject<HTMLAudioElement | null>
@@ -124,30 +59,16 @@ interface Props {
 }
 
 export default function LyricsView({ song, audioRef, onClose }: Props) {
-  const [lines, setLines] = useState<LyricsLine[]>([])
-  const [fullLyrics, setFullLyrics] = useState<string | null>(null)
-  const [songTimestamps, setSongTimestamps] = useState<LyricsSegment[] | null>(null)
-  const [activeIdx, setActiveIdx] = useState(-1)
-  const [loading, setLoading] = useState(true)
+  const [lines, setLines]               = useState<LyricsLine[]>([])
+  const [activeIdx, setActiveIdx]       = useState(-1)
+  const [loading, setLoading]           = useState(true)
   const [isInstrumental, setIsInstrumental] = useState(false)
   const activeLineRef = useRef<HTMLDivElement>(null)
 
-  // Build timed lines from real Whisper timestamps when available
-  const timedLines = useMemo<TimedLine[] | null>(() => {
-    if (!fullLyrics || !songTimestamps?.length) {
-      return null
-    }
-    return buildTimedLines(fullLyrics, songTimestamps)
-  }, [fullLyrics, songTimestamps])
-
-  // Visual lines: prefer timedLines (real timestamps), fall back to estimated lines
-  const visualLines: Array<LyricsLine | TimedLine> = timedLines ?? lines
-
+  // ── Cargar letra (ignorar lyrics_timestamps de la BD) ─────────────────────
   useEffect(() => {
     setLoading(true)
     setLines([])
-    setFullLyrics(null)
-    setSongTimestamps(null)
     setActiveIdx(-1)
     setIsInstrumental(false)
 
@@ -157,14 +78,7 @@ export default function LyricsView({ song, audioRef, onClose }: Props) {
         if (!lyricsText || detail.instrumental) {
           setIsInstrumental(true)
         } else {
-          // Always keep the raw lyrics for buildTimedLines
-          setFullLyrics(lyricsText)
-          // Store real timestamps if the backend provided them
-          const timestamps = (detail as any).lyrics_timestamps as LyricsSegment[] | undefined
-          if (timestamps?.length) {
-            setSongTimestamps(timestamps)
-          }
-          // Also build the estimated fallback lines
+          // Siempre usar el estimado — no leer lyrics_timestamps de la BD
           setLines(parseLyrics(lyricsText, detail.audio_duration ?? 180))
         }
       })
@@ -172,62 +86,39 @@ export default function LyricsView({ song, audioRef, onClose }: Props) {
       .finally(() => setLoading(false))
   }, [song.id])
 
-  // Poll currentTime to sync lines
+  // ── Sincronización con el audio cada 200 ms ───────────────────────────────
   useEffect(() => {
-    if (visualLines.length === 0) {
-      return
-    }
-
-    const intervalMs = timedLines ? 100 : 200
+    if (lines.length === 0) return
 
     const id = setInterval(() => {
-      if (!audioRef.current) {
-        return
-      }
+      if (!audioRef.current) return
       const t = audioRef.current.currentTime
 
-      if (timedLines && timedLines.length > 0) {
-        // Real timestamps: find the last lyric whose startTime <= currentTime
-        let found = -1
-        for (let i = timedLines.length - 1; i >= 0; i--) {
-          if (timedLines[i].type === 'lyric' && t >= timedLines[i].startTime) {
-            found = i
-            break
-          }
-        }
-        setActiveIdx((prev) => (prev === found ? prev : found))
-      } else {
-        // Fallback: estimated approach
-        const lyricEntries = lines
-          .map((l, i) => ({ ...l, i }))
-          .filter((l) => l.type === 'lyric' && l.startTime >= 0)
+      const lyricEntries = lines
+        .map((l, i) => ({ ...l, i }))
+        .filter((l) => l.type === 'lyric' && l.startTime >= 0)
 
-        let next = -1
-        for (const entry of lyricEntries) {
-          if (entry.startTime <= t) {
-            next = entry.i
-          } else {
-            break
-          }
-        }
-        setActiveIdx((prev) => (prev === next ? prev : next))
+      let next = -1
+      for (const entry of lyricEntries) {
+        if (entry.startTime <= t) next = entry.i
+        else break
       }
-    }, intervalMs)
+
+      setActiveIdx((prev) => (prev === next ? prev : next))
+    }, 200)
 
     return () => clearInterval(id)
-  }, [timedLines, lines, audioRef, visualLines.length])
+  }, [lines, audioRef])
 
-  // Scroll active line to center
+  // ── Scroll automático a la línea activa ───────────────────────────────────
   useEffect(() => {
     activeLineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }, [activeIdx])
 
-  // Close on Escape
+  // ── Cerrar con Escape ─────────────────────────────────────────────────────
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose()
-      }
+      if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', fn)
     return () => window.removeEventListener('keydown', fn)
@@ -269,9 +160,9 @@ export default function LyricsView({ song, audioRef, onClose }: Props) {
 
           {!loading &&
             !isInstrumental &&
-            visualLines.map((line, i) => {
+            lines.map((line, i) => {
               const isActive = i === activeIdx
-              const dist = Math.abs(i - activeIdx)
+              const dist     = Math.abs(i - activeIdx)
 
               if (line.type === 'section') {
                 return (
@@ -289,8 +180,7 @@ export default function LyricsView({ song, audioRef, onClose }: Props) {
                 )
               }
 
-              const opacity = isActive ? 1 : dist === 1 ? 0.45 : dist === 2 ? 0.22 : 0.1
-
+              const opacity  = isActive ? 1 : dist === 1 ? 0.45 : dist === 2 ? 0.22 : 0.1
               const fontSize = isActive ? '40px' : dist === 1 ? '28px' : '23px'
 
               return (

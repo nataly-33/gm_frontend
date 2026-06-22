@@ -6,6 +6,7 @@ import { useMixExport } from '../../hooks/useMixExport'
 import ClipTimeline from '../../components/mix/clip-timeline'
 import ClipCard from '../../components/mix/clip-card'
 import AddClipModal from '../../components/mix/add-clip-modal'
+import SaveMixModal from '../../components/mix/save-mix-modal'
 
 function ExportModal({ mixId, onClose }: { mixId: string; onClose: () => void }) {
   const [format, setFormat] = useState<'mp3' | 'wav'>('mp3')
@@ -214,6 +215,7 @@ export default function MixEditorPage() {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showSave, setShowSave] = useState(false)
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
 
@@ -377,6 +379,22 @@ export default function MixEditorPage() {
         <div style={{ flex: 1 }} />
 
         <button
+          onClick={() => setShowSave(true)}
+          style={{
+            padding: '8px 18px',
+            borderRadius: 500,
+            fontSize: 13,
+            fontWeight: 700,
+            background: 'none',
+            color: 'var(--color-primary)',
+            border: '1px solid var(--color-primary)',
+            cursor: 'pointer',
+          }}
+        >
+          Guardar
+        </button>
+
+        <button
           onClick={() => setShowExport(true)}
           style={{
             padding: '8px 18px',
@@ -507,7 +525,7 @@ export default function MixEditorPage() {
                   <p style={{ margin: 0, fontSize: 13, color: 'var(--text-subdued)' }}>
                     Clip {clip.position + 1} · {Math.round(clip.duration_ms / 1000)}s de audio
                   </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, minWidth: 0 }}>
                     {[
                       {
                         label: 'Inicio (ms)',
@@ -550,6 +568,9 @@ export default function MixEditorPage() {
                             padding: '8px 10px',
                             color: 'var(--text-base)',
                             fontSize: 13,
+                            minWidth: 0,      // ← agrega esto
+                          width: '100%',   // ← agrega esto
+                          boxSizing: 'border-box', // ← agrega esto
                           }}
                         />
                       </label>
@@ -664,6 +685,14 @@ export default function MixEditorPage() {
       )}
 
       {showExport && <ExportModal mixId={mix.id} onClose={() => setShowExport(false)} />}
+
+      {showSave && (
+        <SaveMixModal
+          mix={mix}
+          onClose={() => setShowSave(false)}
+          onRenamed={(updated) => setMix(updated)}
+        />
+      )}
     </div>
   )
 }

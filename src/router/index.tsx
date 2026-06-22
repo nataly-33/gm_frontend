@@ -11,6 +11,9 @@ import AdminRoute from './admin-route'
 // Cada import() genera un chunk separado que solo se carga cuando se navega
 // a esa ruta, reduciendo el bundle inicial.
 
+const HomePage = lazy(() => import('../pages/home/Home'))            // ← NUEVO
+const InicioPage = lazy(() => import('../pages/cliente/Inicio'))     // ← NUEVO
+
 const LoginPage = lazy(() => import('../pages/auth/login-page'))
 const RegisterPage = lazy(() => import('../pages/auth/register-page'))
 
@@ -57,18 +60,12 @@ function withSuspense(element: React.ReactElement) {
   return <Suspense fallback={<PageLoader />}>{element}</Suspense>
 }
 
-// ── Placeholder para rutas en construcción ────────────────────────────────
-
-const placeholder = (label: string) => (
-  <div style={{ padding: '32px', color: 'var(--text-base)' }}>
-    <h2>{label}</h2>
-    <p style={{ marginTop: '8px' }}>Próximamente.</p>
-  </div>
-)
-
 // ── Router ────────────────────────────────────────────────────────────────
 
 export const router = createBrowserRouter([
+  // ── Raíz pública: página de bienvenida ───────────────────
+  { path: '/', element: withSuspense(<HomePage />) },          // ← NUEVO
+
   // ── Auth ────────────────────────────────────────────────
   {
     element: <AuthLayout />,
@@ -86,7 +83,7 @@ export const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: '/', element: placeholder('Inicio') },
+          { path: '/inicio', element: withSuspense(<InicioPage />) },   // ← NUEVO
           { path: '/library', element: withSuspense(<LibraryPage />) },
           { path: '/create', element: withSuspense(<CreatePage />) },
           { path: '/stems', element: withSuspense(<StemsPage />) },
