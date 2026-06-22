@@ -59,7 +59,7 @@ export async function getMixProject(id: string): Promise<MixProject> {
 
 export async function updateMixProject(
   id: string,
-  payload: { title?: string; description?: string; bpm?: number }
+  payload: { title?: string; description?: string; bpm?: number; tag_ids?: number[] }
 ): Promise<MixProject> {
   const { data } = await client.patch<MixProject>(ENDPOINTS.mix.project(id), payload)
   return data

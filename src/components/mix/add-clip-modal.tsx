@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getLibrary } from '../../api/modules/songs.api'
+import { getLibrary, getSongDetail } from '../../api/modules/songs.api'
 import { getStemJobs } from '../../api/modules/stems.api'
 import type { LibrarySong } from '../../api/modules/songs.api'
 import type { StemJob } from '../../api/modules/stems.api'
@@ -23,8 +23,8 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Duración por defecto: primeros 30 segundos del audio
-  const DEFAULT_END_MS = 30_000
+  // Fallback si no se puede obtener la duración real
+  const DEFAULT_END_MS = 600_000
 
   useEffect(() => {
     setLoading(true)
@@ -40,11 +40,22 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
     setAdding(true)
     setError(null)
     try {
+      // Intentar obtener duración real desde el detalle completo
+      let endMs = DEFAULT_END_MS
+      try {
+        const detail = await getSongDetail(song.id)
+        if (detail.audio_duration && detail.audio_duration > 0) {
+          endMs = Math.round(detail.audio_duration * 1000)
+        }
+      } catch {
+        // Si falla el detalle, continúa con el fallback silenciosamente
+      }
+
       const clip = await addClip(mixId, {
         song_id: song.id,
         position: nextPosition,
         start_time_ms: 0,
-        end_time_ms: DEFAULT_END_MS,
+        end_time_ms: endMs,
       })
       onAdd(clip)
     } catch (e: any) {
@@ -54,7 +65,7 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
     }
   }
 
-  async function handleAddStem(stemFileId: string) {
+  async function handleAddStem(stemFileId: string, durationMs?: number) {
     setAdding(true)
     setError(null)
     try {
@@ -62,7 +73,7 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
         stem_file_id: stemFileId,
         position: nextPosition,
         start_time_ms: 0,
-        end_time_ms: DEFAULT_END_MS,
+        end_time_ms: durationMs ?? DEFAULT_END_MS,
       })
       onAdd(clip)
     } catch (e: any) {
@@ -206,10 +217,9 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
                     opacity: adding ? 0.5 : 1,
                   }}
                   onMouseEnter={(e) => {
-                    if (!adding) {
-                      ;(e.currentTarget as HTMLButtonElement).style.background =
+                    if (!adding)
+                      (e.currentTarget as HTMLButtonElement).style.background =
                         'var(--bg-card-hover)'
-                    }
                   }}
                   onMouseLeave={(e) =>
                     ((e.currentTarget as HTMLButtonElement).style.background = 'none')
@@ -285,7 +295,13 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
               .map(({ job, sf }) => (
                 <button
                   key={sf.id}
-                  onClick={() => !adding && handleAddStem(sf.id)}
+                  onClick={() =>
+                    !adding &&
+                    handleAddStem(
+                      sf.id,
+                      sf.duration_seconds ? Math.round(sf.duration_seconds * 1000) : undefined,
+                    )
+                  }
                   disabled={adding}
                   style={{
                     width: '100%',
@@ -301,10 +317,9 @@ export default function AddClipModal({ mixId, nextPosition, onAdd, onClose }: Ad
                     opacity: adding ? 0.5 : 1,
                   }}
                   onMouseEnter={(e) => {
-                    if (!adding) {
-                      ;(e.currentTarget as HTMLButtonElement).style.background =
+                    if (!adding)
+                      (e.currentTarget as HTMLButtonElement).style.background =
                         'var(--bg-card-hover)'
-                    }
                   }}
                   onMouseLeave={(e) =>
                     ((e.currentTarget as HTMLButtonElement).style.background = 'none')

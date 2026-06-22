@@ -15,6 +15,7 @@ interface SongCardProps {
   onLike?: (songId: string) => void
   onDelete?: (songId: string) => void
   onPublish?: (songId: string, isPublic: boolean) => void
+  onDownload?: (songId: string) => void   // ← NUEVO
 }
 
 function formatDuration(seconds?: number): string {
@@ -44,7 +45,7 @@ function CoverPlaceholder() {
   )
 }
 
-export default function SongCard({ song, onPlay, onLike, onDelete, onPublish }: SongCardProps) {
+export default function SongCard({ song, onPlay, onLike, onDelete, onPublish, onDownload }: SongCardProps) {
   const [liked, setLiked] = useState(false)
 
   type CoverState = 'loading' | 'loaded' | 'error'
@@ -159,6 +160,21 @@ export default function SongCard({ song, onPlay, onLike, onDelete, onPublish }: 
                 )}
               </button>
             )}
+
+            {/* ── NUEVO: botón Descargar, mismo estilo que Publicar ── */}
+            {onDownload && (
+              <button
+                className={styles.publishChip}
+                onClick={() => onDownload(song.id)}
+                aria-label="Descargar canción"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z" />
+                </svg>
+                Descargar
+              </button>
+            )}
+
             <span className={styles.duration}>{formatDuration(song.audio_duration)}</span>
           </div>
         </div>
