@@ -36,6 +36,10 @@ const PlaylistsPage = lazy(() => import('../pages/playlists/playlists-page'))
 const PlaylistDetailPage = lazy(() => import('../pages/playlists/playlist-detail-page'))
 const MixPage = lazy(() => import('../pages/mix/mix-page'))
 const MixEditorPage = lazy(() => import('../pages/mix/mix-editor-page'))
+const KaraokePage = lazy(() => import('../pages/karaoke/karaoke-page'))
+const KaraokeGeneratePage = lazy(() => import('../pages/karaoke/karaoke-generate-page'))
+const KaraokePlayerPage = lazy(() => import('../pages/karaoke/karaoke-player-page'))
+const KaraokeRoomPage = lazy(() => import('../pages/karaoke/karaoke-room-page'))
 
 // ── Fallback de carga ─────────────────────────────────────────────────────
 
@@ -95,6 +99,10 @@ export const router = createBrowserRouter([
           { path: '/payments', element: withSuspense(<PaymentsPage />) },
           { path: '/mix', element: withSuspense(<MixPage />) },
           { path: '/mix/:id', element: withSuspense(<MixEditorPage />) },
+          { path: '/karaoke', element: withSuspense(<KaraokePage />) },
+          { path: '/karaoke/generate/:songId', element: withSuspense(<KaraokeGeneratePage />) },
+          { path: '/karaoke/play/:karaokeId', element: withSuspense(<KaraokePlayerPage />) },
+          { path: '/karaoke/room/:roomCode', element: withSuspense(<KaraokeRoomPage />) },
         ],
       },
 
