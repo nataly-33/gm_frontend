@@ -13,7 +13,7 @@ import type { Notification } from '../api/modules/notifications.api'
 
 const NAV_ITEMS = [
   {
-    to: '/',
+    to: '/Inicio',
     label: 'Inicio',
     icon: (
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -196,7 +196,7 @@ export default function AppLayout() {
               <NavLink
                 key={to}
                 to={to}
-                end={to === '/'}
+                end={to === '/inicio'}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-2 rounded-md transition-all duration-150 ${
                     isActive

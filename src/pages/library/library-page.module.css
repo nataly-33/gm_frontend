@@ -290,3 +290,86 @@
     display: none;
   }
 }
+/* Pegar esto en library-page.module.css — reemplaza los estilos del miniPlayer */
+
+.miniPlayer {
+  position: fixed;
+  bottom: 0;
+  left: 260px; /* ancho del sidebar */
+  right: 0;
+  height: 56px;
+  background: #121212;
+  border-top: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  z-index: 100;
+}
+
+.miniPlayerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 140px;
+  max-width: 200px;
+  flex-shrink: 0;
+}
+
+.miniPlayerTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miniPlayerGenre {
+  font-size: 11px;
+  color: #a0a0a0;
+}
+
+/* El <audio> nativo ocupa el resto del espacio */
+.miniPlayerAudio {
+  flex: 1;
+  height: 32px;
+  /* Forzar tema oscuro en Chrome/Edge */
+  color-scheme: dark;
+  /* Quitar borde y fondo por defecto */
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.miniPlayerLoading {
+  font-size: 13px;
+  color: #a0a0a0;
+}
+
+.lyricsBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 500px;
+  border: 1px solid #333;
+  background: none;
+  color: #a0a0a0;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.lyricsBtn:hover {
+  border-color: #A855F7;
+  color: #A855F7;
+}
+
+.lyricsBtnActive {
+  border-color: #A855F7;
+  color: #A855F7;
+  background: rgba(168, 85, 247, 0.1);
+}
