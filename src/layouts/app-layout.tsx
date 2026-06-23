@@ -146,12 +146,16 @@ export default function AppLayout() {
         console.error('Error al sincronizar perfil:', err)
       })
 
-    getNotifications()
-      .then((r) => {
-        setNotifs(r.results)
-        setUnread(r.unread_count)
-      })
-      .catch(() => {})
+    const fetchNotifs = () =>
+      getNotifications()
+        .then((r) => {
+          setNotifs(r.results)
+          setUnread(r.unread_count)
+        })
+        .catch(() => {})
+
+    fetchNotifs()
+    const interval = setInterval(fetchNotifs, 30_000)
 
     client
       .get(ENDPOINTS.credits.subscriptions)
@@ -163,6 +167,8 @@ export default function AppLayout() {
       })
       .catch(() => {})
       .finally(() => setCheckingPlan(false))
+
+    return () => clearInterval(interval)
   }, [user?.id])
 
   function handleLogout() {

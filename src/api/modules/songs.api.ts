@@ -62,6 +62,7 @@ export interface LibrarySong {
   audio_duration?: number
   created_at: string
   thumbnail_url?: string
+  thumbnail_s3_key?: string
   play_url?: string
   tags?: SongTag[]
   is_public?: boolean

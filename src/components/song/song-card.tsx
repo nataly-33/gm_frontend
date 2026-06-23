@@ -53,6 +53,11 @@ export default function SongCard({ song, onPlay, onLike, onDelete, onPublish, on
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
 
   useEffect(() => {
+    if (song.thumbnail_url) {
+      setThumbnailUrl(song.thumbnail_url)
+      setCoverState('loaded')
+      return
+    }
     let cancelled = false
     async function fetchThumbnail() {
       try {
