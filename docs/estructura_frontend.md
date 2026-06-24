@@ -2,6 +2,7 @@
 ## FRONTEND — `gm-frontend`
 
 ```
+
 gm-frontend/
 │
 ├── .github/
@@ -71,7 +72,7 @@ gm-frontend/
 │   │   └── admin/               # Todo el panel de administración
 │   │       ├── AdminDashboardPage.tsx
 │   │       ├── UsersAdminPage.tsx
-│   │       ├── TenantsAdminPage.tsx    # Solo superadmin
+│   │       ├── TenantsAdminPage.tsx    # Solo admin
 │   │       ├── ReportsAdminPage.tsx
 │   │       └── AuditLogAdminPage.tsx
 │   │
